@@ -48,12 +48,12 @@ When you just don't need the authorizator any more, you can just 'kubectl delete
 Follow these simple steps to have your JWTA Controller deployed:
 
   1. Create the CRD fr JWT Authorizator (this crd is the one you need to be able to create authorizators)
-        kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/crd.yaml
+        `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/crd.yaml`
   2. Deploy the controller. the controller needs some permissions to be able to create resources:
        1. Needs access to the core API group, the networking API group and the Apps API group
        2. Needs permissions to create, modify and delete resources in that groups
        3. Needs permissions to access any namespace inside the kubernetes cluster.
        So, you need to apply foollowing YAML:
-       kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/controller.yml
+       `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/controller.yml`
 
-That's it.
+**That's it**.
