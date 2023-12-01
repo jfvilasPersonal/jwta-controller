@@ -1,7 +1,7 @@
 {
-  "name": "jwtauthorizator-controller",
+  "name": "jwta-controller",
   "version": "1.0.0",
-  "description": "JWT Authorizator controller",
+  "description": "JWT Authorizator Controller",
   "main": "index.js",
   "files": [
     "dist/*.ts",
@@ -10,10 +10,8 @@
   ],
   "scripts": {
     "lint": "eslint ./src --ext .ts,.tsx",
-    "clean": "rm -Rf node_modules/ dist/",
     "build": "tsc",
     "watch": "tsc --watch",
-    "prepare": "rm -Rf dist/ && npm run build",
     "start": "nodemon index.ts"
   },
   "author": "JFVilas",
