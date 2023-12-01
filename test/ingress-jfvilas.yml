@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-jfvilas
+  namespace: dev
+  annotations:
+spec:
+  ingressClassName: nginx
+  # tls:
+  # - hosts:
+  #   - www.jfvilas.com
+  #   secretName: www.jfvilas.com.tls
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-nginx-svc
+                port:
+                  number: 80

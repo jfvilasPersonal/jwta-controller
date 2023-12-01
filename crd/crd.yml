@@ -1,0 +1,162 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: jwtauthorizators.jfvilas.at.outlook.com
+  namespace: default
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: jfvilas.at.outlook.com
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                ingress:
+                  type: object
+                  properties:
+                    class:
+                      type: string
+                    name:
+                      type: string
+                config:
+                  type: object
+                  properties:
+                    replicas:
+                      type: number
+                      default: 1
+                    prometheus:
+                      type: boolean
+                      default: false
+                validators:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      azure-b2c:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          schedule:
+                            type: string
+                          verify:
+                            type: boolean
+                            default: true
+                          tenant:
+                            type: string
+                          userflow:
+                            type: string
+                          aud:
+                            type: string
+                          iss:
+                            type: string
+                        required: [ 'name', 'tenant', 'userflow']
+                      cognito:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          schedule:
+                            type: string
+                          verify:
+                            type: boolean
+                            default: true
+                          region:
+                            type: string
+                          userpool:
+                            type: string
+                          aud:
+                            type: string
+                          iss:
+                            type: string
+                        required: [ 'name', 'region', 'userpool']
+                      azure-ad:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          schedule:
+                            type: string
+                          verify:
+                            type: boolean
+                            default: true
+                          tenant:
+                            type: string
+                          aud:
+                            type: string
+                          iss:
+                            type: string
+                        required: [ 'name', 'tenant']
+                ruleset:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      uri:
+                        type: string
+                      uritype:
+                        type: string
+                        enum: [prefix, exact, regex]
+                      type:
+                        type: string
+                        enum: [unrestricted, valid, claim, or, and ]
+                      validators:
+                        type: array
+                        items:
+                          type: string
+                      name:
+                        type: string
+                      policy:
+                        type: string
+                        enum: [present, notpresent, is, containsany, containsall, matchesany, matchesall]
+                      options:
+                        type: array
+                        items:
+                          type: string
+                          enum: [lowercase, uppercase]
+                      subset:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum: [unrestricted, valid, claim]
+                            name:
+                              type: string
+                            policy:
+                              type: string
+                              enum: [present, notpresent, is, containsany, containsall, matchesany, matchesall]
+                            values:
+                              type: array
+                              items:
+                                type: string
+                      values:
+                        type: array
+                        items:
+                          type: string
+                    required: [uri, uritype, type, name]
+                      
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: jwtauthorizators
+    # singular name to be used as an alias on the CLI and for display
+    singular: jwtauthorizator
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: JwtAuthorizator
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - jwta
+  

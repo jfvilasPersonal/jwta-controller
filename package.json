@@ -1,0 +1,27 @@
+{
+  "name": "jwtauthorizator-controller",
+  "version": "1.0.0",
+  "description": "JWT Authorizator controller",
+  "main": "index.js",
+  "files": [
+    "dist/*.ts",
+    "dist/*.js",
+    "*.md"
+  ],
+  "scripts": {
+    "lint": "eslint ./src --ext .ts,.tsx",
+    "clean": "rm -Rf node_modules/ dist/",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepare": "rm -Rf dist/ && npm run build",
+    "start": "nodemon index.ts"
+  },
+  "author": "JFVilas",
+  "license": "ISC",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.20.0",
+    "kubernetes-client": "^9.0.0",
+    "tsc": "^2.0.4",
+    "typescript": "^5.2.2"
+  }
+}
