@@ -110,12 +110,12 @@ spec:
                       type:
                         type: string
                         enum: [unrestricted, valid, claim, or, and ]
+                      name:
+                        type: string
                       validators:
                         type: array
                         items:
                           type: string
-                      name:
-                        type: string
                       policy:
                         type: string
                         enum: [present, notpresent, is, containsany, containsall, matchesany, matchesall]
@@ -145,7 +145,7 @@ spec:
                         type: array
                         items:
                           type: string
-                    required: [uri, uritype, type, name]
+                    required: [uri, uritype, type]
                       
   # either Namespaced or Cluster
   scope: Namespaced

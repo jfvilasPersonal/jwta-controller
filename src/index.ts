@@ -1,17 +1,15 @@
 import * as k8s from '@kubernetes/client-node';
 import { NetworkingV1Api, CoreV1Api, AppsV1Api,  } from '@kubernetes/client-node';
-//import { CustomObjectsApi } from '@kubernetes/client-node';
 
-// Configura la conexion con el cluster Kubernetes
+// Configures connection to the Kubernetes cluster
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 var logLevel=0;
 
-// Crea el cliente de Kubernetes
+// Create the kubernetes clients
 const networkingApi = kc.makeApiClient(NetworkingV1Api);
 const coreApi = kc.makeApiClient(CoreV1Api);
 const appsApi = kc.makeApiClient(AppsV1Api);
-//const customApi = kc.makeApiClient(CustomObjectsApi);
 
 async function checkIngress (n:any,ns:any,c:any) {
   if (c!="nginx") {
@@ -19,7 +17,7 @@ async function checkIngress (n:any,ns:any,c:any) {
     return false;    
   }
 
-  // validar que exista el ns y el ingress
+  // Check that ingress do exist
   try {
     var ing = await networkingApi.readNamespacedIngress(n, ns);
     log(1,ing);
@@ -75,7 +73,7 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
   try {
     var appName="jwta-authorizator-"+jwtaName+"-listener";
 
-    // Definir la configuracion del deployment spec
+    // Create the spec fo the deployment
     const deploymentSpec = {
       replicas: spec.config.replicas,
       selector: { matchLabels: { app: appName } },
@@ -94,7 +92,7 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
                 { name: 'JWTA_VALIDATORS', value:JSON.stringify(spec.validators)},
                 { name: 'JWTA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)}
               ],
-              imagePullPolicy: 'Never'   //+++ esto ES PARA K3D
+              imagePullPolicy: 'Never'   //+++ this is a specific requirementof K3D
             },
           ]
         },
@@ -108,7 +106,7 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
       }
     };
 
-    // Crear el objeto Deployment
+    // create a Deployment object
     const deployment = {
       apiVersion: 'apps/v1',
       kind: 'Deployment',
@@ -119,13 +117,13 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
       spec: deploymentSpec,
     };
 
-    // Crear el Deployment en el cluster
+    // Create the Deployment in the cluster
     await appsApi.createNamespacedDeployment(jwtaNamespace, deployment);
     log(1,'Deployment creado con exito');
 
 
 
-    // Crear el service
+    // Cretae a Service
     log(1,'Creando service');
     var serviceBody:k8s.V1Service = new k8s.V1Service();
     serviceBody= {
@@ -142,11 +140,11 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
     }
 
     await coreApi.createNamespacedService(jwtaNamespace, serviceBody);
-    log(1,'Service creado con exito');
+    log(1,'Service created succesfully');
 
 
 
-    // anotar el ingress
+    // annotate the ingress
     // +++ hay qeu ver que hacemos con los jwta shared
     log(1,'Anotando ingress '+spec.ingress.name);
     const response2 = await networkingApi.readNamespacedIngress(spec.ingress.name, jwtaNamespace);
@@ -156,10 +154,10 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
     ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'POST';
 
     await networkingApi.replaceNamespacedIngress(spec.ingress.name, jwtaNamespace, ingressObject);
-    log(1,'Actualizado ingress');
+    log(1,'Ingress annotated');
   }
   catch (err) {
-    log(0,'Error al crearJwtAuthorizator');
+    log(0,'Error  creating the JwtAuthorizator');
     log(0,err);
   }              
 }
@@ -252,14 +250,14 @@ async function modifyJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
 
 
 
-  //create deployment
+  // modify the Deployment
   log(1,'Modificando Deployment');
   var deploymentName = 'jwta-authorizator-'+jwtaName+'-dep';
 
   try {
     var appName="jwta-authorizator-"+jwtaName+"-listener";
 
-    // Definir la configuracion del deployment spec
+    // Create the spec
     const deploymentSpec = {
       replicas: spec.config.replicas,
       selector: { matchLabels: { app: appName } },
@@ -275,7 +273,6 @@ async function modifyJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
                 { name: 'JWTA_NAME', value: jwtaName},
                 { name: 'JWTA_NAMESPACE', value: jwtaNamespace},
                 { name: 'JWTA_RULESET', value:JSON.stringify(spec.ruleset)},
-                //{ name: 'JWTA_VALIDATORS', value:JSON.stringify(spec.validators)},
                 { name: 'JWTA_VALIDATORS', value:JSON.stringify(spec.validators)},
                 { name: 'JWTA_LOG_LEVEL', value:"9"}
                 //+++ ¿prometheus?
@@ -389,7 +386,7 @@ async function testAccess(){
 
 async function main() {
   try {
-    log(0,"JWT Authorizator controller is watching events...");
+    log(0,"JWTA Controller is watching events...");
     const watch = new k8s.Watch(kc);  
     //watch.watch('/apis/jfvilas.at.outlook.com/v1/namespaces/default/jwtauthorizators', {},
     watch.watch('/apis/jfvilas.at.outlook.com/v1/jwtauthorizators', {},
@@ -449,15 +446,11 @@ function redirLog() {
     }
     origLog(a);
   }
-  console.error = (a:object, b:object) => {
-    console.log(a);
-    console.log(b);
+  console.error = (a:object) => {
     origLog("*********ERR*********");
     origLog(a);
   }
-  console.debug = (a:object, b:object) => {
-    console.log(a);
-    console.log(b);
+  console.debug = (a:object) => {
     origLog("*********DEB*********");
     origLog(a);
   } 
@@ -465,7 +458,7 @@ function redirLog() {
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-console.log('JWT Authorizator controller is starting...');
+console.log('JWTA controller is starting...');
 if (process.env.JWTA_LOG_LEVEL!==undefined) logLevel= +process.env.JWTA_LOG_LEVEL;
 console.log('Log level: '+logLevel);
 
@@ -473,7 +466,7 @@ console.log('Log level: '+logLevel);
 redirLog();
 
 if (!testAccess()) {
-  console.log("JWT Authorizator cannot access cluster");
+  console.log("JWTA controller cannot access cluster");
 }
 else {
   // launch controller
