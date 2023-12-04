@@ -141,10 +141,26 @@ spec:
                               type: array
                               items:
                                 type: string
+                            ontrue:
+                              type: string
+                              enum: [accept, reject, continue]
+                              default: accept
+                            onfalse:
+                              type: string
+                              enum: [accept, reject, continue]
+                              default: continue
                       values:
                         type: array
                         items:
                           type: string
+                      ontrue:
+                        type: string
+                        enum: [accept, reject, continue]
+                        default: accept
+                      onfalse:
+                        type: string
+                        enum: [accept, reject, continue]
+                        default: continue
                     required: [uri, uritype, type]
                       
   # either Namespaced or Cluster
