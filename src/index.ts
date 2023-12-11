@@ -126,6 +126,7 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
     ruleset: JSON.stringify(spec.ruleset)
   };
 
+  
   var configMap:k8s.V1ConfigMap = new k8s.V1ConfigMap();
   configMap = {
     apiVersion: 'v1',
