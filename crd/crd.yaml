@@ -1,6 +1,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
+  # +++ add description to fields
   # name must match the spec fields below, and be in the form: <plural>.<group>
   name: jwtauthorizators.jfvilas.at.outlook.com
   namespace: default
@@ -22,27 +23,40 @@ spec:
               type: object
               properties:
                 ingress:
+                  description: 'An origin ingress controller can be specified, so the JWTA can make automatic configuration for you. You must provide the ingress class (nginx) and the ingress name. It should be deployed to the same namespace as the JWTA.'
                   type: object
                   properties:
-                    class:
-                      type: string
                     name:
+                      description: The name of the ingress controller.
                       type: string
+                    class:
+                      description: The class of the ingress controller, currently only 'nginx' class is supported.
+                      type: string
+                    provider:
+                      description: The provider of the ingress controller
+                      type: string
+                      enum: [ 'ingress-nginx', 'nginx-ingress', 'haproxy', 'traefik']
+                  required: [ name, provider ]
                 config:
+                  description: 'General authorizator configuration regarding performance, monitoring and behaviour.'
                   type: object
                   properties:
                     replicas:
+                      description: Number of replicas of the same JWTA to deploy.
                       type: number
                       default: 1
                     prometheus:
+                      description: true if you want the JWTA to provide prometheus metrics.
                       type: boolean
                       default: false
                 validators:
+                  description: A list of endpoints that can provide keys for decoding and validating JWT tokens. A validator is typically an IDM like RH Keycloak, AWS Cognito, Azure AD...
                   type: array
                   items:
                     type: object
                     properties:
                       azure-b2c:
+                        description: Parameters to define an Azure B2C validator.
                         type: object
                         properties:
                           name:
@@ -60,8 +74,9 @@ spec:
                             type: string
                           iss:
                             type: string
-                        required: [ 'name', 'tenant', 'userflow']
+                        required: [ name, tenant, userflow]
                       cognito:
+                        description: Parameters to define an AWS Cognito validator.
                         type: object
                         properties:
                           name:
@@ -79,8 +94,9 @@ spec:
                             type: string
                           iss:
                             type: string
-                        required: [ 'name', 'region', 'userpool']
+                        required: [ name, region, userpool ]
                       azure-ad:
+                        description: Parameters to define an Azure AD (i.e. Entra ID) validator.
                         type: object
                         properties:
                           name:
@@ -96,8 +112,9 @@ spec:
                             type: string
                           iss:
                             type: string
-                        required: [ 'name', 'tenant']
+                        required: [ name, tenant ]
                 ruleset:
+                  description: A list of the rules you want to use to validate access to resources, that is, URIs and token conditions.
                   type: array
                   items:
                     type: object
@@ -106,10 +123,10 @@ spec:
                         type: string
                       uritype:
                         type: string
-                        enum: [prefix, exact, regex]
+                        enum: [ prefix, exact, regex ]
                       type:
                         type: string
-                        enum: [unrestricted, valid, claim, or, and ]
+                        enum: [ unrestricted, valid, claim, or, and ]
                       name:
                         type: string
                       validators:
@@ -118,12 +135,12 @@ spec:
                           type: string
                       policy:
                         type: string
-                        enum: [present, notpresent, is, containsany, containsall, matchesany, matchesall]
+                        enum: [ present, notpresent, is, containsany, containsall, matchesany, matchesall ]
                       options:
                         type: array
                         items:
                           type: string
-                          enum: [lowercase, uppercase]
+                          enum: [ lowercase, uppercase ]
                       subset:
                         type: array
                         items:
@@ -131,23 +148,23 @@ spec:
                           properties:
                             type:
                               type: string
-                              enum: [unrestricted, valid, claim]
+                              enum: [ unrestricted, valid, claim ]
                             name:
                               type: string
                             policy:
                               type: string
-                              enum: [present, notpresent, is, containsany, containsall, matchesany, matchesall]
+                              enum: [ present, notpresent, is, containsany, containsall, matchesany, matchesall ]
                             values:
                               type: array
                               items:
                                 type: string
                             ontrue:
                               type: string
-                              enum: [accept, reject, continue]
+                              enum: [ accept, reject, continue ]
                               default: accept
                             onfalse:
                               type: string
-                              enum: [accept, reject, continue]
+                              enum: [ accept, reject, continue ]
                               default: continue
                       values:
                         type: array
@@ -155,13 +172,13 @@ spec:
                           type: string
                       ontrue:
                         type: string
-                        enum: [accept, reject, continue]
+                        enum: [ accept, reject, continue ]
                         default: accept
                       onfalse:
                         type: string
-                        enum: [accept, reject, continue]
+                        enum: [ accept, reject, continue ]
                         default: continue
-                    required: [uri, uritype, type]
+                    required: [ uri, uritype, type ]
                       
   # either Namespaced or Cluster
   scope: Namespaced

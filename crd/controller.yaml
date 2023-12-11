@@ -22,7 +22,7 @@ spec:
           - containerPort: 3000
           env:
             - name: JWTA_LOG_LEVEL
-              value: "0"
+              value: '9'
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -37,7 +37,7 @@ metadata:
   namespace: default
 rules:
   # "" indicates the core API group
-  - apiGroups: ["", "jfvilas.at.outlook.com", "apps", "networking.k8s.io"]
+  - apiGroups: ["", "jfvilas.at.outlook.com", "apps", "networking.k8s.io","traefik.io"]
     resources: ["*"]
     verbs: ["*"]
 ---
