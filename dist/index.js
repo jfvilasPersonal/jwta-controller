@@ -84,20 +84,10 @@ async function createTraefikMiddleware(jwtaName, jwtaNamespace, spec) {
     };
     log(2, 'Creating traefik middleware: ');
     log(2, resource);
-    try {
-        crdApi.createNamespacedCustomObject('traefik.io', 'v1alpha1', jwtaNamespace, 'middlewares', resource);
-    }
-    catch (err) {
-        log(0, 'Error creando Middleware');
-        log(0, err);
-    }
-}
-async function deleteTraefikMiddleware(jwtaName, jwtaNamespace, spec) {
-    var name = `jwta-traefik-middleware-${jwtaName}`;
-    crdApi.deleteNamespacedCustomObject('traefik.io', 'v1alpha1', jwtaNamespace, 'middlewares', name);
+    await crdApi.createNamespacedCustomObject('traefik.io', 'v1alpha1', jwtaNamespace, 'middlewares', resource);
 }
 async function annotateIngress(jwtaName, jwtaNamespace, spec) {
-    // +++ hay qeu ver que hacemos con los jwta shared
+    // +++ hay que ver que hacemos con los jwta shared
     /* NGINX Ingress
     nginx.org/location-snippets: |
       auth_request /auth;
@@ -115,7 +105,7 @@ async function annotateIngress(jwtaName, jwtaNamespace, spec) {
     switch (spec.ingress.provider) {
         case 'ingress-nginx':
             ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://jwta-authorizator-${jwtaName}-svc.dev.svc.cluster.local:3000/validate/${jwtaName}`;
-            ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'POST';
+            ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'GET';
             break;
         case 'nginx-ingress':
             var locationSnippet = 'auth_request /jwt-auth;';
@@ -127,7 +117,7 @@ async function annotateIngress(jwtaName, jwtaNamespace, spec) {
             log(0, 'HAProxy ingress still not supported... we are working hard!');
             break;
         case 'traefik':
-            createTraefikMiddleware(jwtaName, jwtaNamespace, spec);
+            await createTraefikMiddleware(jwtaName, jwtaNamespace, spec);
             ingressObject.metadata.annotations['traefik.ingress.kubernetes.io/router.middlewares'] = `${jwtaNamespace}-jwta-traefik-middleware-${jwtaName}@kubernetescrd`;
             break;
         default:
@@ -139,7 +129,7 @@ async function annotateIngress(jwtaName, jwtaNamespace, spec) {
 }
 async function createJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
     //create configmap  
-    log(1, 'Creando Configmap');
+    log(1, 'Creating Configmap');
     var configmapName = "jwta-authorizator-" + jwtaName + "-configmap";
     const configMapData = {
         namespace: jwtaNamespace,
@@ -157,16 +147,17 @@ async function createJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
         },
         data: configMapData,
     };
-    try {
-        await coreApi.createNamespacedConfigMap(jwtaNamespace, configMap);
-        log(1, 'Configmap creado con exito');
-    }
-    catch (err) {
-        log(0, 'Error creando Configmap');
-        log(0, err);
-    }
+    await coreApi.createNamespacedConfigMap(jwtaNamespace, configMap);
+    // try {
+    //   await coreApi.createNamespacedConfigMap(jwtaNamespace,configMap);
+    //   log(1,'Configmap creado con exito');
+    // }
+    // catch (err) {
+    //   log(0,'Error creando Configmap');
+    //   log(0,err);
+    // }
     //create deployment
-    log(1, 'Creando Deployment');
+    log(1, 'Creating Deployment');
     var deploymentName = 'jwta-authorizator-' + jwtaName + '-dep';
     try {
         var appName = "jwta-authorizator-" + jwtaName + "-listener";
@@ -214,9 +205,9 @@ async function createJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
         };
         // Create the Deployment in the cluster
         await appsApi.createNamespacedDeployment(jwtaNamespace, deployment);
-        log(1, 'Deployment creado con exito');
+        log(1, 'Deployment successfully created');
         // Cretae a Service
-        log(1, 'Creando service');
+        log(1, 'Creting service service');
         var serviceBody = new k8s.V1Service();
         serviceBody = {
             apiVersion: "v1",
@@ -232,7 +223,7 @@ async function createJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
         };
         await coreApi.createNamespacedService(jwtaNamespace, serviceBody);
         log(1, 'Service created succesfully');
-        annotateIngress(jwtaName, jwtaNamespace, spec);
+        await annotateIngress(jwtaName, jwtaNamespace, spec);
     }
     catch (err) {
         log(0, 'Error  creating the JwtAuthorizator');
@@ -262,37 +253,53 @@ async function deleteJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
         //delete deployment
         var depName = 'jwta-authorizator-' + jwtaName + '-dep';
         response = await appsApi.deleteNamespacedDeployment(depName, jwtaNamespace);
-        log(1, 'Deployment eliminado con exito');
+        log(1, 'Deployment successfully removed');
         //delete service
         var servName = 'jwta-authorizator-' + jwtaName + '-svc';
         const respServ = await coreApi.deleteNamespacedService(servName, jwtaNamespace);
-        log(1, 'Service eliminado con exito');
+        log(1, 'Service successfully removed');
         //modificando ingress
-        log(1, 'Anotando ingress ');
+        log(1, 'De-annotating ingress ');
+        //    try {
         const ingressResponse = await networkingApi.readNamespacedIngress(ingressName, jwtaNamespace);
         var ingressObject = ingressResponse.body;
-        if (ingressObject.metadata.annotations) {
-            if (ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'])
-                delete ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'];
-            if (ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'])
-                delete ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'];
-        }
-        if (spec.ingress.provider === 'traefik') {
-            deleteTraefikMiddleware(jwtaName, jwtaNamespace, spec);
+        switch (spec.ingress.provider) {
+            case 'ingress-nginx':
+                if (ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'])
+                    delete ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'];
+                if (ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'])
+                    delete ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'];
+                break;
+            case 'nginx-ingress':
+                if (ingressObject.metadata.annotations['nginx.org/location-snippets'])
+                    delete ingressObject.metadata.annotations['nginx.org/location-snippets'];
+                if (ingressObject.metadata.annotations['nginx.org/server-snippets'])
+                    delete ingressObject.metadata.annotations['nginx.org/server-snippets'];
+                break;
+            case 'traefik':
+                //await deleteTraefikMiddleware(jwtaName, jwtaNamespace, spec);
+                var name = `jwta-traefik-middleware-${jwtaName}`;
+                await crdApi.deleteNamespacedCustomObject('traefik.io', 'v1alpha1', jwtaNamespace, 'middlewares', name);
+                break;
         }
         await networkingApi.replaceNamespacedIngress(ingressName, jwtaNamespace, ingressObject);
-        log(1, 'actualizado ingress');
+        log(1, 'Ingress updated');
+        // }
+        // catch (err) {
+        //   log(0,'Error de-annotating ingress');
+        //   log(0,err);
+        //   }
     }
     catch (err) {
-        log(0, 'Error eliminando JwtAuthorizator');
+        log(0, 'Error removing JwtAuthorizator');
         log(0, err);
     }
 }
-function processDelete(jwtaObject) {
+async function processDelete(jwtaObject) {
     var ns = jwtaObject.metadata.namespace;
     if (ns === undefined)
         ns = 'default';
-    deleteJwtAuthorizator(jwtaObject.metadata.name, ns, jwtaObject);
+    await deleteJwtAuthorizator(jwtaObject.metadata.name, ns, jwtaObject.spec);
 }
 async function modifyJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
     //create configmap  
@@ -315,9 +322,9 @@ async function modifyJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
         data: configMapData,
     };
     await coreApi.replaceNamespacedConfigMap(configMapName, jwtaNamespace, configMap);
-    log(1, 'Configmap modificado con exito');
+    log(1, 'Configmap successfully modified');
     // modify the Deployment
-    log(1, 'Modificando Deployment');
+    log(1, 'Modifying Deployment');
     var deploymentName = 'jwta-authorizator-' + jwtaName + '-dep';
     try {
         var appName = "jwta-authorizator-" + jwtaName + "-listener";
@@ -365,7 +372,7 @@ async function modifyJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
             spec: deploymentSpec,
         };
         await appsApi.replaceNamespacedDeployment(deploymentName, jwtaNamespace, deployment);
-        log(1, 'Deployment modificado con exito');
+        log(1, 'Deployment successfully modified');
         //+++ no deberia haber cambios aqui
         // // Crear el service
         // console.log('Modificando service');
@@ -391,13 +398,13 @@ async function modifyJwtAuthorizator(jwtaName, jwtaNamespace, spec) {
         // const response2 = await networkingApi.readNamespacedIngress(spec.ingress.name, jwtaNamespace);
         // var ingressObject:any = response2.body;
         // ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://jwta-authorizator-${jwtaName}-svc.dev.svc.cluster.local:3000/validate/${jwtaName}`;
-        // ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'POST';
+        // ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'GET';
         // await networkingApi.replaceNamespacedIngress(spec.ingress.name, jwtaNamespace, ingressObject);
         // console.log('Actualizado ingress');
         // revisar si el ingress ha cambiado:
     }
     catch (err) {
-        log(0, 'Error al crearJwtAuthorizator');
+        log(0, 'Error modifying JwtAuthorizator');
         log(0, err);
     }
 }
@@ -410,17 +417,13 @@ async function processModify(jwtaObject) {
         log(0, "Ingress validation failed: " + ingress.name);
         return false;
     }
-    modifyJwtAuthorizator(jwtaObject.metadata.name, namespace, jwtaObject.spec);
+    await modifyJwtAuthorizator(jwtaObject.metadata.name, namespace, jwtaObject.spec);
     return true;
 }
 async function testAccess() {
     try {
         log(0, "Testing cluster access");
         const nss = await coreApi.listNamespace();
-        //console.log(JSON.stringify(nss.body));
-        // nss.body.items.forEach( element => {
-        //   //console.log((element as any).metadata.name);
-        // });
     }
     catch (err) {
         log(0, "Error accessing cluster on Controller start:");
@@ -432,19 +435,19 @@ async function main() {
         log(0, "JWTA Controller is watching events...");
         const watch = new k8s.Watch(kc);
         //watch.watch('/apis/jfvilas.at.outlook.com/v1/namespaces/default/jwtauthorizators', {},
-        watch.watch('/apis/jfvilas.at.outlook.com/v1/jwtauthorizators', {}, (type, obj) => {
+        watch.watch('/apis/jfvilas.at.outlook.com/v1/jwtauthorizators', {}, async (type, obj) => {
             log(1, "Received event: " + type);
             log(1, obj.metadata.namespace + "/" + obj.metadata.name);
             log(1, obj);
             switch (type) {
                 case "ADDED":
-                    processAdd(obj);
+                    await processAdd(obj);
                     break;
                 case "DELETED":
-                    processDelete(obj);
+                    await processDelete(obj);
                     break;
                 case "MODIFIED":
-                    processModify(obj);
+                    await processModify(obj);
                     break;
                 default:
                     log(0, "****** EVENT UNKNOWN: " + type);
@@ -480,6 +483,11 @@ function redirLog() {
                 body: a.response.body
             };
         }
+        // if (typeof(a)==='string') {
+        //   if ((a as string).length>200) {
+        //     origLog( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+(a as string).substring(0,200));
+        //   }
+        // }
         origLog(a);
     };
     console.error = (a) => {
@@ -496,7 +504,7 @@ console.log('JWTA controller is starting...');
 if (process.env.JWTA_LOG_LEVEL !== undefined)
     logLevel = +process.env.JWTA_LOG_LEVEL;
 console.log('Log level: ' + logLevel);
-// filtrar log messages
+// filter log messages
 redirLog();
 if (!testAccess()) {
     console.log("JWTA controller cannot access cluster");
