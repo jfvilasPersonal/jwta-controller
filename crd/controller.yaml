@@ -53,3 +53,4 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: jwta-controller-cr
+

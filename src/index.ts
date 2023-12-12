@@ -125,7 +125,6 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
     ingressName:spec.ingress.name,
     ruleset: JSON.stringify(spec.ruleset)
   };
-
   
   var configMap:k8s.V1ConfigMap = new k8s.V1ConfigMap();
   configMap = {
@@ -563,3 +562,4 @@ else {
   // launch controller
   main();
 }
+

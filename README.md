@@ -60,3 +60,4 @@ Follow these simple steps to have your JWTA Controller deployed:
        `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/controller.yml`
        
 **That's it!**
+
