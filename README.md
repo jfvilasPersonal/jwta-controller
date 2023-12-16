@@ -1,6 +1,6 @@
 # Welcome
 
-This repo contains all source artifacts needed to create the JWTA-Controller component of the [JWT Authorizator project](https://jfvilaspersonal.github.io/jwtauthorizator).
+This repo contains all source artifacts needed to create the Oberkorn controller of the [JWT Authorizator project](https://jfvilaspersonal.github.io/jwtauthorizator).
 
 ## JWT Authorizator project
 JWT Authorizator is a module created for having the flexibility to deploy JWT validation in front of any application project deployed
@@ -11,10 +11,10 @@ The JWT Authorizator project is made up of several components:
   - *Controller*. Creating CRD's is a good starting point, but for the CRD's to do something useful, you need to have a controller who can listen for CRD events (resource creation, resource modification and resource deletion). The JWT Authorizator controller is deployed to kubernetes as a Deployment.
   - *Authorizator*. The Authorizator is the component in charge of managing users requests and deciding, according to specs included in the CRD's, where to approve or deny access requests to web resources.
 
-This repo contains everything you need to deploy a JWTA Controller.
+This repo contains everything you need to deploy an Oberkorn Controller.
 
-## JWTA Controller operation
-The JWTA Controller is the responsible of listening for JWT Authorizator operations, that is, the controller listens for cluster events regarding the management of JWT Authorizators: creation of new authorizators, deletion of modifications.
+## Oberkorn controller operation
+The Oberkorn controller is the responsible of listening for JWT Authorizator operations, that is, the controller listens for cluster events regarding the management of JWT Authorizators: creation of new authorizators, deletion of modifications.
 
 ### Authorizator creation
 When a new JWT Authorizator is created, the controller receives an "ADDED" event from the control plane of the kubernetes cluster and performs following tasks:
@@ -52,8 +52,8 @@ The flow is as follows:
   4. You can make changes to your auhtorizator (like changing scale process, modifying the ruleset...), so when you apply a new YAML the controller receives a 'MODIFIED' event and it performs requested changes.
   5. When you no longer need an Authorizator, you can 'kubectl delete' it and the controller will receive a 'DELETED' event and it will deprovision all previously provisioned resources (and optional configuration).
 
-## JWTA Controller Installation
-Follow these simple steps to have your JWTA Controller deployed:
+## Oberkorn controller installation
+Follow these simple steps to have your Oberkorn controller deployed:
 
   1. Create the CRD for JWT Authorizator (this CRD is the one you need to be able to create authorizators).
 
