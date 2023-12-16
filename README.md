@@ -43,7 +43,7 @@ When you just don't need the authorizator any more, you can just 'kubectl delete
 ## Oberkorn controller Architecture
 This is how the controller works:
 
-![Control Plane](/_media/architecture/controlplane.png)
+![Control Plane](https://jfvilaspersonal.github.io/oberkorn/_media/architecture/controlplane.png)
 
 The flow is as follows:
   1. You create a YAML containing the specs of a JWT Authorizator. See the rest of the documentation on how to uild a YAML like this.
@@ -72,5 +72,5 @@ Follow these simple steps to have your JWTA Controller deployed:
 ## Oberkorn architecture
 Oberkorn is build around two separate resources: **the controller** (in charge of the control plane) and **the authorizator** (repsonsible of the data plane). The architecture of the whole project is depicted below.
 
-![Oberkorn architecture](/_media/oberkorn-architecture.png)
+![Oberkorn architecture](https://jfvilaspersonal.github.io/oberkorn/_media/oberkorn-architecture.png)
 
