@@ -23,7 +23,7 @@ spec:
               type: object
               properties:
                 ingress:
-                  description: 'An origin ingress controller can be specified, so the JWTA can make automatic configuration for you. You must provide the ingress class (nginx) and the ingress name. It should be deployed to the same namespace as the JWTA.'
+                  description: 'An origin ingress controller can be specified, so Oberkorn controller can make automatic configuration for you. You must provide the ingress class (nginx) and the ingress name. It should be deployed to the same namespace as the Oberkorn controller .'
                   type: object
                   properties:
                     name:
@@ -42,15 +42,15 @@ spec:
                   type: object
                   properties:
                     replicas:
-                      description: Number of replicas of the same JWTA to deploy.
+                      description: Number of replicas of the same Oberkron authorizator to deploy.
                       type: number
                       default: 1
                     prometheus:
-                      description: true if you want the JWTA to provide prometheus metrics.
+                      description: true if you want the Oberkorn controller to provide prometheus metrics.
                       type: boolean
                       default: false
                 validators:
-                  description: A list of endpoints that can provide keys for decoding and validating JWT tokens. A validator is typically an IDM like RH Keycloak, AWS Cognito, Azure AD...
+                  description: A list of endpoints that can provide keys for decoding and validating tokens (JWT or whatever). A validator is typically an IDM like RH Keycloak, AWS Cognito, Azure AD...
                   type: array
                   items:
                     type: object

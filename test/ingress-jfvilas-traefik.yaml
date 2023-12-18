@@ -6,7 +6,7 @@
 #   namespace: dev
 # spec:
 #   forwardAuth:
-#     address: http://jwta-authorizator-ja-jfvilas-svc.dev.svc.cluster.local:3000/validate/ja-jfvilas
+#     address: http://obk-authorizator-ja-jfvilas-svc.dev.svc.cluster.local:3000/validate/ja-jfvilas
 # ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

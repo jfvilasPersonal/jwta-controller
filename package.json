@@ -1,7 +1,7 @@
 {
-  "name": "jwta-controller",
+  "name": "obk-controller",
   "version": "1.0.0",
-  "description": "JWT Authorizator Controller",
+  "description": "Oberkorn Controller",
   "main": "index.js",
   "files": [
     "dist/*.ts",

@@ -3,21 +3,21 @@
 This repo contains all source artifacts needed to create the Oberkorn controller of the [Oberkorn Authorizator project](https://jfvilaspersonal.github.io/oberkorn).
 
 ## Oberkorn Authorizator project
-Oberkorn Authorizator is a module created for having the flexibility to deploy JWT validation in front of any application project deployed
+Oberkorn Authorizator is a module created for having the flexibility to deploy token validation (JWT or whatever token type) in front of any application project deployed
 inside a Kubernetes cluster where the access is managed via Nginx Ingress Controller.
 
-The JWT Authorizator project is made up of several components:
-  - *Custom Resource Definitions*. The way a JWT Authorizator can be deployed is based on kubernetes CRD's. You can see examples in the JWT Authorizator repositories explaning how to build and deploy an authorizator using such CRD's.
-  - *Controller*. Creating CRD's is a good starting point, but for the CRD's to do something useful, you need to have a controller who can listen for CRD events (resource creation, resource modification and resource deletion). The JWT Authorizator controller is deployed to kubernetes as a Deployment.
+The Oberkorn authorizator project is made up of several components:
+  - *Custom Resource Definitions*. The way a Oberkorn authorizator can be deployed is based on kubernetes CRD's. You can see examples in the Oberkorn Authorizator repositories explaning how to build and deploy an authorizator using such CRD's.
+  - *Controller*. Creating CRD's is a good starting point, but for the CRD's to do something useful, you need to have a controller who can listen for CRD events (resource creation, resource modification and resource deletion). The Oberkorn controller is deployed to kubernetes as a Deployment.
   - *Authorizator*. The Authorizator is the component in charge of managing users requests and deciding, according to specs included in the CRD's, where to approve or deny access requests to web resources.
 
 This repo contains everything you need to deploy an Oberkorn Controller.
 
 ## Oberkorn controller operation
-The Oberkorn controller is the responsible of listening for JWT Authorizator operations, that is, the controller listens for cluster events regarding the management of JWT Authorizators: creation of new authorizators, deletion of modifications.
+The Oberkorn controller is the responsible of listening for Oberkorn authorizator operations, that is, the controller listens for cluster events regarding the management of Oberkorn authorizators: creation of new authorizators, deletion of modifications.
 
 ### Authorizator creation
-When a new JWT Authorizator is created, the controller receives an "ADDED" event from the control plane of the kubernetes cluster and performs following tasks:
+When a new Oberkorn authorizator is created, the controller receives an "ADDED" event from the control plane of the kubernetes cluster and performs following tasks:
 
   - Validates the request.
   - Creates a config map containing all the configuration that the authorizator needs for working.
@@ -31,7 +31,7 @@ When a deployed authorizator needs to be changed, you can just 'kubectl apply' t
   - Validate the request.
   - Apply changes to the authorizator's config map. 
   - Appli changes to the authorizator deployment.
-  - If an ingress controller has been specified, then JWTA-Controller will reconfigure the ingress through annotations.
+  - If an ingress controller has been specified, then the Oberkorn controller will reconfigure the ingress through annotations.
 
 ### Authorizator deletion
 When you just don't need the authorizator any more, you can just 'kubectl delete' the YAML of your auhtorizator and the controller will:
@@ -46,16 +46,16 @@ This is how the controller works:
 ![Control Plane](https://jfvilaspersonal.github.io/oberkorn/_media/architecture/controlplane.png)
 
 The flow is as follows:
-  1. You create a YAML containing the specs of a JWT Authorizator. See the rest of the documentation on how to uild a YAML like this.
+  1. You create a YAML containing the specs of an Oberkorn Authorizator. See the rest of the documentation on how to uild a YAML like this.
   2. You apply the YAML to create the authorizator: 'kubectl apply -f your-authorizator-code.yaml'.
-  3. The controller, which is listening for 'ObkAuthorizator' events receives an 'ADDED' event, so the controller creates all the resources needed to deploy an authorizator (a pod, a service, and, optionally, it configures your ingress to point its authorization needs to the new ObkAuthorizator).
+  3. The controller, which is listening for 'ObkAuthorizator' events receives an 'ADDED' event, so the controller creates all the resources needed to deploy an authorizator (a pod, a service, and, optionally, it configures your ingress to point its authorization needs to the new 'ObkAuthorizator').
   4. You can make changes to your auhtorizator (like changing scale process, modifying the ruleset...), so when you apply a new YAML the controller receives a 'MODIFIED' event and it performs requested changes.
   5. When you no longer need an Authorizator, you can 'kubectl delete' it and the controller will receive a 'DELETED' event and it will deprovision all previously provisioned resources (and optional configuration).
 
 ## Oberkorn controller installation
 Follow these simple steps to have your Oberkorn controller deployed:
 
-  1. Create the CRD for JWT Authorizator (this CRD is the one you need to be able to create authorizators).
+  1. Create the CRD for the Oberkorn authorizator (this CRD is the one you need to be able to create authorizators).
 
         `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/crd/crd.yaml`
 
