@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   # +++ add description to fields
   # name must match the spec fields below, and be in the form: <plural>.<group>
-  name: jwtauthorizators.jfvilas.at.outlook.com
+  name: ObkAuthorizators.jfvilas.at.outlook.com
   namespace: default
 spec:
   # group name to use for REST API: /apis/<group>/<version>
@@ -184,13 +184,13 @@ spec:
   scope: Namespaced
   names:
     # plural name to be used in the URL: /apis/<group>/<version>/<plural>
-    plural: jwtauthorizators
+    plural: obkauthorizators
     # singular name to be used as an alias on the CLI and for display
-    singular: jwtauthorizator
+    singular: obkauthorizator
     # kind is normally the CamelCased singular type. Your resource manifests use this.
-    kind: JwtAuthorizator
+    kind: ObkAuthorizator
     # shortNames allow shorter string to match your resource on the CLI
     shortNames:
-    - jwta
+    - obk
   
   

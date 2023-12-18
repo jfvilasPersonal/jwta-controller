@@ -114,7 +114,7 @@ async function annotateIngress(jwtaName:string,jwtaNamespace:string,spec:any) {
 }
 
 
-async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:any) {
+async function createObkAuthorizator (jwtaName:string,jwtaNamespace:string,spec:any) {
   //create configmap  
   log(1,'Creating Configmap');
   var configmapName="jwta-authorizator-"+jwtaName+"-configmap";
@@ -227,7 +227,7 @@ async function createJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
     await annotateIngress(jwtaName, jwtaNamespace, spec);
   }
   catch (err) {
-    log(0,'Error  creating the JwtAuthorizator');
+    log(0,'Error  creating the ObkAuthorizator');
     log(0,err);
   }              
 }
@@ -241,12 +241,12 @@ async function processAdd(jwtaObject: any) {
     log(0,"Ingress validation failed");
     return false;
   }
-  createJwtAuthorizator(jwtaObject.metadata.name, namespace, jwtaObject.spec);
+  createObkAuthorizator(jwtaObject.metadata.name, namespace, jwtaObject.spec);
   return true;
 }
 
 
-async function deleteJwtAuthorizator (jwtaName:string,jwtaNamespace:string, spec:any) {
+async function deleteObkAuthorizator (jwtaName:string,jwtaNamespace:string, spec:any) {
   try {
     // recuperar config
     var configmapName="jwta-authorizator-"+jwtaName+"-configmap";
@@ -298,7 +298,7 @@ async function deleteJwtAuthorizator (jwtaName:string,jwtaNamespace:string, spec
     //   }
   }
   catch (err) {
-    log(0,'Error removing JwtAuthorizator');
+    log(0,'Error removing ObkAuthorizator');
     log(0,err);
   }
 }
@@ -308,11 +308,11 @@ async function processDelete(jwtaObject:any) {
   var ns=jwtaObject.metadata.namespace;
   if (ns===undefined) ns='default';
 
-  await deleteJwtAuthorizator(jwtaObject.metadata.name, ns, jwtaObject.spec);
+  await deleteObkAuthorizator(jwtaObject.metadata.name, ns, jwtaObject.spec);
 }
 
 
-async function modifyJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:any) {
+async function modifyObkAuthorizator (jwtaName:string,jwtaNamespace:string,spec:any) {
   //create configmap  
   log(1,'Modificando Configmap');
   var configMapName="jwta-authorizator-"+jwtaName+"-configmap";
@@ -436,7 +436,7 @@ async function modifyJwtAuthorizator (jwtaName:string,jwtaNamespace:string,spec:
 
   }
   catch (err) {
-    log(0,'Error modifying JwtAuthorizator');
+    log(0,'Error modifying ObkAuthorizator');
     log(0,err);
   }              
 }
@@ -451,7 +451,7 @@ async function processModify (jwtaObject:any) {
     log(0,"Ingress validation failed: "+ingress.name);
     return false;
   }
-  await modifyJwtAuthorizator(jwtaObject.metadata.name, namespace, jwtaObject.spec);
+  await modifyObkAuthorizator(jwtaObject.metadata.name, namespace, jwtaObject.spec);
   return true;
 }
 
@@ -472,8 +472,8 @@ async function main() {
   try {
     log(0,"JWTA Controller is watching events...");
     const watch = new k8s.Watch(kc);  
-    //watch.watch('/apis/jfvilas.at.outlook.com/v1/namespaces/default/jwtauthorizators', {},
-    watch.watch('/apis/jfvilas.at.outlook.com/v1/jwtauthorizators', {},
+    //watch.watch('/apis/jfvilas.at.outlook.com/v1/namespaces/default/obkauthorizators', {},
+    watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {},
       async (type, obj) => {
         log(1,"Received event: "+type);
         log(1,obj.metadata.namespace+"/"+obj.metadata.name);

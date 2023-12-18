@@ -48,7 +48,7 @@ This is how the controller works:
 The flow is as follows:
   1. You create a YAML containing the specs of a JWT Authorizator. See the rest of the documentation on how to uild a YAML like this.
   2. You apply the YAML to create the authorizator: 'kubectl apply -f your-authorizator-code.yaml'.
-  3. The controller, which is listening for 'JwtAuthorizator' events receives an 'ADDED' event, so the controller creates all the resources needed to deploy an authorizator (a pod, a service, and, optionally, it configures your ingress to point its authorization needs to the new JwtAuthorizator).
+  3. The controller, which is listening for 'ObkAuthorizator' events receives an 'ADDED' event, so the controller creates all the resources needed to deploy an authorizator (a pod, a service, and, optionally, it configures your ingress to point its authorization needs to the new ObkAuthorizator).
   4. You can make changes to your auhtorizator (like changing scale process, modifying the ruleset...), so when you apply a new YAML the controller receives a 'MODIFIED' event and it performs requested changes.
   5. When you no longer need an Authorizator, you can 'kubectl delete' it and the controller will receive a 'DELETED' event and it will deprovision all previously provisioned resources (and optional configuration).
 
