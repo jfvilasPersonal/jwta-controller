@@ -1,39 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jwta-controller-dep
+  name: obk-controller-dep
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: jwta-controller
+      name: obk-controller
   template:
     metadata:
       labels:
-        name: jwta-controller
+        name: obk-controller
     spec:
-      serviceAccount: jwta-controller-sa
+      serviceAccount: obk-controller-sa
       containers:
-        - name: jwta-controller
-          image: jwta-controller
+        - name: obk-controller
+          image: obk-controller
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 3000
           env:
-            - name: JWTA_LOG_LEVEL
+            - name: OBK_LOG_LEVEL
               value: '9'
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: jwta-controller-sa
+  name: obk-controller-sa
   namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: jwta-controller-cr
+  name: obk-controller-cr
   namespace: default
 rules:
   # "" indicates the core API group
@@ -44,13 +44,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: jwta-controller-crb
+  name: obk-controller-crb
   namespace: default
 subjects:
 - kind: ServiceAccount
-  name: jwta-controller-sa
+  name: obk-controller-sa
   namespace : default
 roleRef:
   kind: ClusterRole
-  name: jwta-controller-cr
+  name: obk-controller-cr
 

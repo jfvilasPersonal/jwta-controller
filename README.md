@@ -1,9 +1,9 @@
 # Welcome
 
-This repo contains all source artifacts needed to create the Oberkorn controller of the [JWT Authorizator project](https://jfvilaspersonal.github.io/jwtauthorizator).
+This repo contains all source artifacts needed to create the Oberkorn controller of the [Oberkorn Authorizator project](https://jfvilaspersonal.github.io/oberkorn).
 
-## JWT Authorizator project
-JWT Authorizator is a module created for having the flexibility to deploy JWT validation in front of any application project deployed
+## Oberkorn Authorizator project
+Oberkorn Authorizator is a module created for having the flexibility to deploy JWT validation in front of any application project deployed
 inside a Kubernetes cluster where the access is managed via Nginx Ingress Controller.
 
 The JWT Authorizator project is made up of several components:
@@ -22,7 +22,7 @@ When a new JWT Authorizator is created, the controller receives an "ADDED" event
   - Validates the request.
   - Creates a config map containing all the configuration that the authorizator needs for working.
   - If an nginx-ingress-controller has been specified in the CRD, the controller will update the ingress controller to make him point it's authorization endpoint to the newly created authorizator (see Nginx Ingress Controller annnotations to understand this process).
-  - Creates a deployment with at least 1 replica of the image JWTA-Authorizator (this deployment will do the magic for you).
+  - Creates a deployment with at least 1 replica of the image OBK-Authorizator (this deployment will do the magic for you).
   - Creates a service to route authorization requests from the ingress controller to the authorizator.
 
 ### Authorizator modification
@@ -57,7 +57,7 @@ Follow these simple steps to have your Oberkorn controller deployed:
 
   1. Create the CRD for JWT Authorizator (this CRD is the one you need to be able to create authorizators).
 
-        `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/crd.yaml`
+        `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/crd/crd.yaml`
 
   2. Deploy the controller. the controller needs some permissions to be able to create resources:
        1. Needs access to the core API group, the networking API group and the Apps API group.
@@ -65,7 +65,7 @@ Follow these simple steps to have your Oberkorn controller deployed:
        3. Needs permissions to access any namespace inside the kubernetes cluster.
        So, you need to apply following YAML:
 
-       `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/jwta-controller/main/crd/controller.yml`
+       `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/crd/controller.yml`
        
 **That's it!**
 
