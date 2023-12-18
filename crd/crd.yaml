@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   # +++ add description to fields
   # name must match the spec fields below, and be in the form: <plural>.<group>
-  name: ObkAuthorizators.jfvilas.at.outlook.com
+  name: obkauthorizators.jfvilas.at.outlook.com
   namespace: default
 spec:
   # group name to use for REST API: /apis/<group>/<version>
