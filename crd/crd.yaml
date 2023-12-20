@@ -113,6 +113,54 @@ spec:
                           iss:
                             type: string
                         required: [ name, tenant ]
+                      basic-auth-list:
+                        description: Parameters to define a Basic authorization validator.
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          realm:
+                            type: string
+                        required: [ name, realm ]
+                        users:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              password:
+                                type: string
+                      basic-auth-endpoint:
+                        description: Parameters to define a Basic authorization validator using an external endpoint.
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          url:
+                            type: string
+                      basic-auth-rdbms:
+                        description: Parameters to define a Basic authorization validator using an external users database (relational).
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          connection:
+                            type: string
+                          provider:
+                            type: string
+                            enum: [ mysql, postgresql, mariadb, sqlserver, oracle ]
+                      basic-auth-nosql:
+                        description: Parameters to define a Basic authorization validator using an external users database (NoSQL).
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          connection:
+                            type: string
+                          provider:
+                            type: string
+                            enum: [ mongodb, couchbase ]
                 ruleset:
                   description: A list of the rules you want to use to validate access to resources, that is, URIs and token conditions.
                   type: array
