@@ -72,5 +72,5 @@ Follow these simple steps to have your Oberkorn controller deployed:
 ## Oberkorn architecture
 Oberkorn is build around two separate resources: **the controller** (in charge of the control plane) and **the authorizator** (repsonsible of the data plane). The architecture of the whole project is depicted below.
 
-![Oberkorn architecture](https://jfvilaspersonal.github.io/oberkorn/_media/oberkorn-architecture.png)
+![Oberkorn architecture](https://jfvilaspersonal.github.io/oberkorn/_media/architecture/oberkorn-architecture.png)
 
