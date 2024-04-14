@@ -49,6 +49,10 @@ spec:
                       description: true if you want the Oberkorn controller to provide prometheus metrics.
                       type: boolean
                       default: false
+                    log-level:
+                      description: A number between 0 and 9 (0 is less log, 9 is very verbose).
+                      type: number
+                      default: 0
                 validators:
                   description: A list of endpoints that can provide keys for decoding and validating tokens (JWT or whatever). A validator is typically an IDM like KeyCloak, AWS Cognito, Azure AD...
                   type: array

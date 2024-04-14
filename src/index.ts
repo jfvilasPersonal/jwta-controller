@@ -172,7 +172,8 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
                 { name: 'OBKA_RULESET', value:JSON.stringify(spec.ruleset)},
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
-                { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)}
+                { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
+                { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config['log-level'])}
               ],
               imagePullPolicy: 'Never'   //+++ this is a specific requirementof K3D
             },
@@ -362,7 +363,8 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
                 { name: 'OBKA_RULESET', value:JSON.stringify(spec.ruleset)},
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
-                { name: 'OBKA_LOG_LEVEL', value:"9"}
+                { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
+                { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config['log-level'])}
                 //+++ ¿prometheus?
               ],
               imagePullPolicy: 'Never'   //+++ esto ES PARA K3D
