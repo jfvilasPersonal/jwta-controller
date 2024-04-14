@@ -172,6 +172,8 @@ spec:
                           verify:
                             type: boolean
                             default: true
+                          url:
+                            type: string
                           realm:
                             type: string
                           aud:

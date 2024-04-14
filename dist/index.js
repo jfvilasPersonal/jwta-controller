@@ -47,7 +47,7 @@ async function checkIngress(n, ns, c) {
     }
     catch (err) {
         if (err.statusCode === 404)
-            log(0, "Inexistent ingress: " + n);
+            log(0, "Error, inexistent ingress: " + n);
         else {
             log(0, "Error checking ingress");
             log(0, err);
@@ -407,8 +407,8 @@ async function main() {
         const watch = new k8s.Watch(kc);
         //watch.watch('/apis/jfvilas.at.outlook.com/v1/namespaces/default/obkauthorizators', {},
         watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {}, async (type, obj) => {
-            log(1, "Received event: " + type);
-            log(1, obj.metadata.namespace + "/" + obj.metadata.name);
+            log(0, "Received event: " + type);
+            log(0, obj.metadata.namespace + "/" + obj.metadata.name);
             log(1, obj);
             switch (type) {
                 case "ADDED":
