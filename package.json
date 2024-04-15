@@ -20,7 +20,7 @@
     "@kubernetes/client-node": "^0.20.0",
     "kubernetes-client": "^9.0.0",
     "tsc": "^2.0.4",
-    "typescript": "^5.2.2"
+    "typescript": "^5.4.5",
+    "uuid": "^9.0.1"
   }
 }
-
