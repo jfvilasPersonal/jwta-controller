@@ -1,6 +1,9 @@
 import * as k8s from '@kubernetes/client-node';
 import { NetworkingV1Api, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
 
+// general
+const VERSION:string="0.1.0";
+
 // Configures connection to the Kubernetes cluster
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
@@ -12,13 +15,8 @@ const coreApi = kc.makeApiClient(CoreV1Api);
 const appsApi = kc.makeApiClient(AppsV1Api);
 const crdApi = kc.makeApiClient(CustomObjectsApi);
 
-async function checkIngress (n:any,ns:any,c:any) {
-  log(0, 'Ingress class: '+c);
-  // if (c!="nginx") {
-  //   log(0,"Unsupported ingress class: "+c);
-  //   return false;    
-  // }
 
+async function checkIngress (n:any,ns:any,c:any) {
   // Check that ingress do exist
   try {
     var ing = await networkingApi.readNamespacedIngress(n, ns);
@@ -37,8 +35,9 @@ async function checkIngress (n:any,ns:any,c:any) {
 }
 
 
+//+++ Traefik middleware is under development
 async function createTraefikMiddleware(authorizatorName:string,authorizatorNamespace:string,spec:any) {
-  // +++ crear un recurso crd
+  // +++ create a CRD resource
   /*
   apiVersion: traefik.io/v1alpha1
   kind: Middleware
@@ -47,7 +46,7 @@ async function createTraefikMiddleware(authorizatorName:string,authorizatorNames
     namespace: dev
   spec:
     forwardAuth:
-      address: http://obk-authorizator-ja-jfvilas-svc.dev.svc.cluster.local:3000/validate/ja-jfvilas
+      address: http://.....
   */
   var address=`http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}`;
   var resource = {
@@ -68,15 +67,16 @@ async function createTraefikMiddleware(authorizatorName:string,authorizatorNames
   await crdApi.createNamespacedCustomObject('traefik.io', 'v1alpha1', authorizatorNamespace, 'middlewares', resource); 
 }
 
+
 async function annotateIngress(authorizatorName:string,authorizatorNamespace:string,spec:any) {
-    // +++ hay que ver que hacemos con los obk shared
+    // +++ we need to decide how to manage shared authorizators
 
     /* NGINX Ingress
     nginx.org/location-snippets: |
       auth_request /auth;
     nginx.org/server-snippets: |
       location = /auth {
-        proxy_pass http://obk-authorizator-ja-jfvilas-svc.dev.svc.cluster.local:3000/validate/ja-jfvilas;
+        proxy_pass http://clusterdns:port/validate/ingressname;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Original-URI $request_uri;
@@ -120,8 +120,8 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
   var configmapName="obk-authorizator-"+authorizatorName+"-configmap";
 
   const configMapData = {
-    namespace:authorizatorNamespace,
     name:authorizatorName,
+    namespace:authorizatorNamespace,
     ingressName:spec.ingress.name,
     ruleset: JSON.stringify(spec.ruleset)
   };
@@ -138,19 +138,9 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
   };
   await coreApi.createNamespacedConfigMap(authorizatorNamespace,configMap);
 
-  // try {
-  //   await coreApi.createNamespacedConfigMap(authorizatorNamespace,configMap);
-  //   log(1,'Configmap creado con exito');
-  // }
-  // catch (err) {
-  //   log(0,'Error creando Configmap');
-  //   log(0,err);
-  // }
-
-
   //create deployment
   log(1,'Creating Deployment');
-  var deploymentName = 'obk-authorizator-'+authorizatorName+'-dep';
+  var deploymentName = 'obk-authorizator-'+authorizatorName+'-deply';
 
   try {
     var appName='obk-authorizator-'+authorizatorName+'-listener';
@@ -160,13 +150,20 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
       replicas: spec.config.replicas,
       selector: { matchLabels: { app: appName } },
       template: {
-        metadata: { labels: { app: appName } },
+        metadata: { 
+          labels: { app: appName },
+          annotations: {
+            'oberkorn.jfvilas.at.outlook.com/ingress': spec.ingress.name,
+            'oberkorn.jfvilas.at.outlook.com/authorizator': authorizatorName,
+            'oberkorn.jfvilas.at.outlook.com/namespace': authorizatorNamespace
+          }
+        },
         spec: {
           containers: [
             {
               name: appName,
               image: 'obk-authorizator',
-              ports: [ {containerPort:3000, protocolo:'TCP'} ],
+              ports: [ {containerPort:3000, protocol:'TCP'} ],
               env: [ 
                 { name: 'OBKA_NAME', value: authorizatorName},
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
@@ -203,8 +200,6 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
     // Create the Deployment in the cluster
     await appsApi.createNamespacedDeployment(authorizatorNamespace, deployment);
     log(1,'Deployment successfully created');
-
-
 
     // Cretae a Service
     log(1,'Creting service service');
@@ -249,6 +244,15 @@ async function processAdd(authorizatorObject: any) {
 
 async function deleteObkAuthorizator (authorizatorName:string,authorizatorNamespace:string, spec:any) {
   try {
+    var deploymentName = 'obk-authorizator-'+authorizatorName+'-deply';
+
+
+    var deployment= await appsApi.readNamespacedDeployment(deploymentName, authorizatorNamespace);
+    console.log(JSON.stringify(deployment));
+    console.log(JSON.stringify(deployment));
+
+
+
     // recuperar config
     var configmapName="obk-authorizator-"+authorizatorName+"-configmap";
     var configMapResp = await coreApi.readNamespacedConfigMap(configmapName,authorizatorNamespace);
@@ -258,8 +262,7 @@ async function deleteObkAuthorizator (authorizatorName:string,authorizatorNamesp
     var response = await coreApi.deleteNamespacedConfigMap(configmapName,authorizatorNamespace);
 
     //delete deployment
-    var depName = 'obk-authorizator-'+authorizatorName+'-dep';
-    response = await appsApi.deleteNamespacedDeployment(depName,authorizatorNamespace);
+    response = await appsApi.deleteNamespacedDeployment(deploymentName,authorizatorNamespace);
     log(1,'Deployment successfully removed');
 
     //delete service
@@ -319,8 +322,8 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
   var configMapName="obk-authorizator-"+authorizatorName+"-configmap";
 
   const configMapData = {
-    namespace:authorizatorNamespace,
     name:authorizatorName,
+    namespace:authorizatorNamespace,
     ingressName:spec.ingress.name,
     ruleset: JSON.stringify(spec.ruleset)
   };
@@ -341,7 +344,7 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
 
   // modify the Deployment
   log(1,'Modifying Deployment');
-  var deploymentName = 'obk-authorizator-'+authorizatorName+'-dep';
+  var deploymentName = 'obk-authorizator-'+authorizatorName+'-deply';
 
   try {
     var appName="obk-authorizator-"+authorizatorName+"-listener";
@@ -351,13 +354,20 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
       replicas: spec.config.replicas,
       selector: { matchLabels: { app: appName } },
       template: {
-        metadata: { labels: { app: appName } },
+        metadata: { 
+          labels: { app: appName },
+          annotations: {
+            'oberkorn.jfvilas.at.outlook.com/ingress': spec.ingress.name,
+            'oberkorn.jfvilas.at.outlook.com/authorizator': authorizatorName,
+            'oberkorn.jfvilas.at.outlook.com/namespace': authorizatorNamespace
+          }
+        },
         spec: {
           containers: [
             {
               name: appName,
               image: 'obk-authorizator',
-              ports: [ {containerPort:3000, protocolo:'TCP'} ],
+              ports: [ {containerPort:3000, protocol:'TCP'} ],
               env: [ 
                 { name: 'OBKA_NAME', value: authorizatorName},
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
@@ -365,7 +375,6 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
                 { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
                 { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config['log-level'])}
-                //+++ ¿prometheus?
               ],
               imagePullPolicy: 'Never'   //+++ esto ES PARA K3D
             },
@@ -435,11 +444,10 @@ async function main() {
   try {
     log(0,"Oberkorn Controller is watching events...");
     const watch = new k8s.Watch(kc);  
-    //watch.watch('/apis/jfvilas.at.outlook.com/v1/namespaces/default/obkauthorizators', {},
     watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {},
       async (type, obj) => {
         log(0,"Received event: "+type);
-        log(0,obj.metadata.namespace+"/"+obj.metadata.name);
+        log(0,`${obj.metadata.namespace}/${obj.metadata.name} (${obj.spec.ingress.class})`);
         log(1,obj);
         switch(type) {
           case "ADDED":
@@ -492,11 +500,6 @@ function redirLog() {
           body: a.response.body
         };
     }
-    // if (typeof(a)==='string') {
-    //   if ((a as string).length>200) {
-    //     origLog( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+(a as string).substring(0,200));
-    //   }
-    // }
     origLog(a);
   }
   console.error = (a:object) => {
@@ -511,7 +514,8 @@ function redirLog() {
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-console.log('Oberkorn controller is starting...');
+console.log('Oberkorn Controller is starting...');
+console.log(`Oberkorn Controller version is ${VERSION}`);
 if (process.env.OBKA_LOG_LEVEL!==undefined) logLevel= +process.env.OBKA_LOG_LEVEL;
 console.log('Log level: '+logLevel);
 
