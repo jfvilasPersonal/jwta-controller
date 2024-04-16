@@ -78,7 +78,7 @@ spec:
                             type: string
                           iss:
                             type: string
-                        required: [ name, tenant, userflow]
+                        required: [ name, tenant, userflow ]
                       cognito:
                         description: Parameters to define an AWS Cognito validator.
                         type: object
@@ -118,36 +118,41 @@ spec:
                             type: string
                         required: [ name, tenant ]
                       basic-auth-list:
-                        description: Parameters to define a Basic authorization validator.
+                        description: Parameters to define a Basic authorization validator using a list of us/pw.
                         type: object
                         properties:
                           name:
                             type: string
                           realm:
                             type: string
-                        required: [ name, realm ]
-                        users:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              name:
-                                type: string
-                              password:
-                                type: string
+                          users:
+                            type: array
+                            items:
+                              type: object
+                              properties: 
+                                name:
+                                  type: string
+                                password:
+                                  type: string
+                        required: [ name, users ]
                       basic-auth-endpoint:
                         description: Parameters to define a Basic authorization validator using an external endpoint.
                         type: object
                         properties:
                           name:
                             type: string
+                          realm:
+                            type: string
                           url:
                             type: string
+                        required: [ name, url ]
                       basic-auth-rdbms:
                         description: Parameters to define a Basic authorization validator using an external users database (relational).
                         type: object
                         properties:
                           name:
+                            type: string
+                          realm:
                             type: string
                           connection:
                             type: string
@@ -159,6 +164,8 @@ spec:
                         type: object
                         properties:
                           name:
+                            type: string
+                          realm:
                             type: string
                           connection:
                             type: string
