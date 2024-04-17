@@ -90,8 +90,10 @@ async function annotateIngress(authorizatorName:string,authorizatorNamespace:str
       case 'ingress-nginx':
         ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}`;
         ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'GET';
+        ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-response-headers'] = 'WWW-Authenticate';
         break;
       case 'nginx-ingress':
+        //var headersSnippet = 'sssss';
         var locationSnippet = 'auth_request /obk-auth;';
         var serverSnippet = `location = /obk-auth { proxy_pass http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header X-Original-URI $request_uri; }`;
         ingressObject.metadata.annotations['nginx.org/location-snippets'] = locationSnippet;

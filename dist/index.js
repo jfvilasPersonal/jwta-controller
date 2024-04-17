@@ -104,6 +104,7 @@ async function annotateIngress(authorizatorName, authorizatorNamespace, spec) {
         case 'ingress-nginx':
             ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}`;
             ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'GET';
+            ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-response-headers'] = 'WWW-Authenticate';
             break;
         case 'nginx-ingress':
             var locationSnippet = 'auth_request /obk-auth;';
