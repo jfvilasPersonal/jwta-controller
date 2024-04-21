@@ -49,7 +49,7 @@ spec:
                       description: true if you want the Oberkorn controller to provide prometheus metrics.
                       type: boolean
                       default: false
-                    log-level:
+                    logLevel:
                       description: A number between 0 and 9 (0 is less log, 9 is very verbose).
                       type: number
                       default: 0
@@ -59,7 +59,7 @@ spec:
                   items:
                     type: object
                     properties:
-                      azure-b2c:
+                      azureB2c:
                         description: Parameters to define an Azure B2C validator.
                         type: object
                         properties:
@@ -79,6 +79,20 @@ spec:
                           iss:
                             type: string
                         required: [ name, tenant, userflow ]
+                      google:
+                        description: Parameters to define a Google validator.
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          verify:
+                            type: boolean
+                            default: true
+                          aud:
+                            type: string
+                          iss:
+                            type: string
+                        required: [ name ]
                       cognito:
                         description: Parameters to define an AWS Cognito validator.
                         type: object
@@ -99,7 +113,7 @@ spec:
                           iss:
                             type: string
                         required: [ name, region, userpool ]
-                      azure-ad:
+                      azureAd:
                         description: Parameters to define an Azure AD (i.e. Entra ID) validator.
                         type: object
                         properties:
@@ -117,7 +131,7 @@ spec:
                           iss:
                             type: string
                         required: [ name, tenant ]
-                      basic-auth-list:
+                      basicAuthList:
                         description: Parameters to define a Basic authorization validator using a list of us/pw.
                         type: object
                         properties:
@@ -135,7 +149,7 @@ spec:
                                 password:
                                   type: string
                         required: [ name, users ]
-                      basic-auth-endpoint:
+                      basicAuthEndpoint:
                         description: Parameters to define a Basic authorization validator using an external endpoint.
                         type: object
                         properties:
@@ -146,7 +160,7 @@ spec:
                           url:
                             type: string
                         required: [ name, url ]
-                      basic-auth-rdbms:
+                      basicAuthRdbms:
                         description: Parameters to define a Basic authorization validator using an external users database (relational).
                         type: object
                         properties:
@@ -159,7 +173,7 @@ spec:
                           provider:
                             type: string
                             enum: [ mysql, postgresql, mariadb, sqlserver, oracle ]
-                      basic-auth-nosql:
+                      basicAuthNosql:
                         description: Parameters to define a Basic authorization validator using an external users database (NoSQL).
                         type: object
                         properties:
@@ -192,6 +206,22 @@ spec:
                           iss:
                             type: string
                         required: [ name, realm]
+                      custom:
+                        description: Parameters to define a Custom validator using a configmap as source for the javascript function.
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          configMap:
+                            type: string
+                          key:
+                            type: string
+                          requestHeader:
+                            type: string
+                          responseHeader:
+                            type: string
+                        required: [ name, configMap ]
+
                 ruleset:
                   description: A list of the rules you want to use to validate access to resources, that is, URIs and token conditions.
                   type: array
@@ -269,7 +299,6 @@ spec:
     # kind is normally the CamelCased singular type. Your resource manifests use this.
     kind: ObkAuthorizator
     # shortNames allow shorter string to match your resource on the CLI
-    shortNames:
-    - obk
+    shortNames: [ obk ]
   
   

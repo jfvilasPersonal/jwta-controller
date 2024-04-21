@@ -21,7 +21,7 @@ spec:
           ports:
           - containerPort: 3000
           env:
-            - name: OBK_LOG_LEVEL
+            - name: OBKC_LOG_LEVEL
               value: '9'
 ---
 apiVersion: v1

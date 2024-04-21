@@ -1,3 +1,4 @@
+call update-version
 call npm run build
 kubectl delete -f crd\crd.yaml
 kubectl delete -f controller.yaml
