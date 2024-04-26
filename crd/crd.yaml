@@ -1,7 +1,6 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  # +++ add description to fields
   # name must match the spec fields below, and be in the form: <plural>.<group>
   name: obkauthorizators.jfvilas.at.outlook.com
   namespace: default
@@ -131,7 +130,7 @@ spec:
                           iss:
                             type: string
                         required: [ name, tenant ]
-                      basicAuthList:
+                      basicAuth:
                         description: Parameters to define a Basic authorization validator using a list of us/pw.
                         type: object
                         properties:
@@ -139,7 +138,17 @@ spec:
                             type: string
                           realm:
                             type: string
+                          storeSecret:
+                              type: string
+                          storeKey:
+                              type: string
+                          storeType:
+                              description: Type of store for the Basic Auth user list
+                              type: string
+                              default: inline
+                              enum: [ 'inline', 'secret' ]
                           users:
+                            description: An array of users and passwords. If store type is inline users DB is a fixed list. If store type is secret this array will be dump to a secret on controller start (if such secret does not exist), so users can change its passwords.
                             type: array
                             items:
                               type: object
@@ -149,43 +158,6 @@ spec:
                                 password:
                                   type: string
                         required: [ name, users ]
-                      basicAuthEndpoint:
-                        description: Parameters to define a Basic authorization validator using an external endpoint.
-                        type: object
-                        properties:
-                          name:
-                            type: string
-                          realm:
-                            type: string
-                          url:
-                            type: string
-                        required: [ name, url ]
-                      basicAuthRdbms:
-                        description: Parameters to define a Basic authorization validator using an external users database (relational).
-                        type: object
-                        properties:
-                          name:
-                            type: string
-                          realm:
-                            type: string
-                          connection:
-                            type: string
-                          provider:
-                            type: string
-                            enum: [ mysql, postgresql, mariadb, sqlserver, oracle ]
-                      basicAuthNosql:
-                        description: Parameters to define a Basic authorization validator using an external users database (NoSQL).
-                        type: object
-                        properties:
-                          name:
-                            type: string
-                          realm:
-                            type: string
-                          connection:
-                            type: string
-                          provider:
-                            type: string
-                            enum: [ mongodb, couchbase ]
                       keycloak:
                         description: Parameters to define a KeyCloak validator.
                         type: object

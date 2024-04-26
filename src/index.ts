@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
-import { NetworkingV1Api, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
+import { KubeConfig, NetworkingV1Api, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
 import { VERSION } from './version';
 
 // Configures connection to the Kubernetes cluster
@@ -34,7 +34,7 @@ async function checkIngress (n:any,ns:any,c:any) {
 
 
 //+++ Traefik middleware is under development
-async function createTraefikMiddleware(authorizatorName:string,authorizatorNamespace:string,spec:any) {
+async function createTraefikMiddleware(authorizatorName:string,authorizatorNamespace:string,clusterName:string,spec:any) {
   // +++ create a CRD resource
   /*
   apiVersion: traefik.io/v1alpha1
@@ -46,8 +46,7 @@ async function createTraefikMiddleware(authorizatorName:string,authorizatorNames
     forwardAuth:
       address: http://.....
   */
-  //+++ nombre dns customizable
-  var address=`http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}`;
+  var address=`http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3000/validate/${authorizatorName}`;
   var resource = {
     apiVersion: 'traefik.io/v1alpha1',
     kind: 'Middleware',
@@ -67,7 +66,7 @@ async function createTraefikMiddleware(authorizatorName:string,authorizatorNames
 }
 
 
-async function annotateIngress(authorizatorName:string,authorizatorNamespace:string,spec:any) {
+async function annotateIngress(authorizatorName:string,authorizatorNamespace:string,clusterName:string, spec:any) {
     // +++ we need to decide how to manage shared authorizators
 
     /* NGINX Ingress
@@ -87,14 +86,14 @@ async function annotateIngress(authorizatorName:string,authorizatorNamespace:str
 
     switch(spec.ingress.provider) {
       case 'ingress-nginx':
-        ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}`;
+        ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3000/validate/${authorizatorName}`;
         ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'GET';
         ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-response-headers'] = 'WWW-Authenticate';
         break;
       case 'nginx-ingress':
         //var headersSnippet = 'sssss';
         var locationSnippet = 'auth_request /obk-auth;';
-        var serverSnippet = `location = /obk-auth { proxy_pass http://obk-authorizator-${authorizatorName}-svc.dev.svc.cluster.local:3000/validate/${authorizatorName}; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header X-Original-URI $request_uri; }`;
+        var serverSnippet = `location = /obk-auth { proxy_pass http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3000/validate/${authorizatorName}; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header X-Original-URI $request_uri; }`;
         ingressObject.metadata.annotations['nginx.org/location-snippets'] = locationSnippet;
         ingressObject.metadata.annotations['nginx.org/server-snippets'] = serverSnippet;
         break;
@@ -102,7 +101,7 @@ async function annotateIngress(authorizatorName:string,authorizatorNamespace:str
         log (0,'HAProxy ingress still not supported... we are working hard!');
         break;
       case 'traefik':
-        await createTraefikMiddleware(authorizatorName, authorizatorNamespace, spec);
+        await createTraefikMiddleware(authorizatorName, authorizatorNamespace, clusterName, spec);
         ingressObject.metadata.annotations['traefik.ingress.kubernetes.io/router.middlewares'] = `${authorizatorNamespace}-obk-traefik-middleware-${authorizatorName}@kubernetescrd`;
         break;
       default:
@@ -116,29 +115,6 @@ async function annotateIngress(authorizatorName:string,authorizatorNamespace:str
 
 
 async function createObkAuthorizator (authorizatorName:string,authorizatorNamespace:string,spec:any) {
-  //create configmap  
-  // log(1,'Creating Configmap');
-  // var configmapName="obk-authorizator-"+authorizatorName+"-configmap";
-
-  // const configMapData = {
-  //   name:authorizatorName,
-  //   namespace:authorizatorNamespace,
-  //   ingressName:spec.ingress.name,
-  //   ruleset: JSON.stringify(spec.ruleset)
-  // };
-  
-  // var configMap:k8s.V1ConfigMap = new k8s.V1ConfigMap();
-  // configMap = {
-  //   apiVersion: 'v1',
-  //   kind: 'ConfigMap',
-  //   metadata: {
-  //     name: configmapName,
-  //     namespace:authorizatorNamespace
-  //   },
-  //   data: configMapData,
-  // };
-  // await coreApi.createNamespacedConfigMap(authorizatorNamespace,configMap);
-
   //create deployment
   log(1,'Creating Deployment');
   var deploymentName = 'obk-authorizator-'+authorizatorName+'-deply';
@@ -204,11 +180,12 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
 
     // Cretae a Service
     log(1,'Creting service service');
+    var serviceName='obk-authorizator-'+authorizatorName+'-svc';
     var serviceBody:k8s.V1Service = new k8s.V1Service();
     serviceBody= {
       apiVersion: "v1",
       metadata: {
-        name: 'obk-authorizator-'+authorizatorName+'-svc',
+        name: serviceName,
         namespace: authorizatorNamespace
       },
       spec: {
@@ -221,7 +198,7 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
     await coreApi.createNamespacedService(authorizatorNamespace, serviceBody);
     log(1,'Service created succesfully');
 
-    await annotateIngress(authorizatorName, authorizatorNamespace, spec);
+    await annotateIngress(authorizatorName, authorizatorNamespace, 'cluster.local', spec);
   }
   catch (err) {
     log(0,'Error  creating the ObkAuthorizator');
@@ -259,7 +236,7 @@ async function deleteObkAuthorizator (authorizatorName:string,authorizatorNamesp
     const respServ = await coreApi.deleteNamespacedService(servName, authorizatorNamespace);
     log(1,`Service ${servName} successfully removed`);
 
-    //modificando ingress
+    // de-annotate ingress
     log(1,'De-annotating ingress '+ingressName);
       const ingressResponse = await networkingApi.readNamespacedIngress(ingressName, authorizatorNamespace);
       var ingressObject:any = ingressResponse.body;
@@ -276,7 +253,6 @@ async function deleteObkAuthorizator (authorizatorName:string,authorizatorNamesp
           break;
     
         case 'traefik':
-          //await deleteTraefikMiddleware(authorizatorName, authorizatorNamespace, spec);
           var name = `obk-traefik-middleware-${authorizatorName}`;
           await crdApi.deleteNamespacedCustomObject('traefik.io', 'v1alpha1', authorizatorNamespace, 'middlewares', name);        
           break;
@@ -334,7 +310,7 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
                 { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
                 { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config.logLevel)}
               ],
-              imagePullPolicy: 'Never'   //+++ esto ES PARA K3D
+              imagePullPolicy: 'Never'   //+++ this is a specific requirementof K3D
             },
           ],
         },
@@ -349,7 +325,7 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
     };
 
 
-    // Crear el objeto Deployment
+    // Crete the Deploymnet object
     const deployment = {
       apiVersion: 'apps/v1',
       kind: 'Deployment',
@@ -360,10 +336,8 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
       spec: deploymentSpec,
     };
 
-
     await appsApi.replaceNamespacedDeployment(deploymentName, authorizatorNamespace, deployment);
     log(1,'Deployment successfully modified');
-
   }
   catch (err) {
     log(0,'Error modifying ObkAuthorizator');
@@ -449,7 +423,7 @@ function redirLog() {
 
   console.log = (a) => {
     if (a && a.response!==undefined) {
-      console.log(typeof(a));
+      //console.log(typeof(a));
       a={
           statusCode: a.response.statusCode,
           statuesMessage:a.response.statusMessage,
@@ -474,8 +448,6 @@ function redirLog() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 console.log('Oberkorn Controller is starting...');
 console.log(`Oberkorn Controller version is ${VERSION}`);
-//+++ revisar version y log_level de auth y contr
-console.log(process.env);
 if (process.env.OBKC_LOG_LEVEL!==undefined) logLevel= +process.env.OBKC_LOG_LEVEL;
 console.log('Log level: '+logLevel);
 
