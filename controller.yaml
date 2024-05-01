@@ -7,11 +7,13 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      name: obk-controller
+      # name: obk-controller
+      app: obk-controller
   template:
     metadata:
       labels:
-        name: obk-controller
+        app: obk-controller
+        # name: obk-controller
     spec:
       serviceAccount: obk-controller-sa
       containers:
@@ -23,6 +25,19 @@ spec:
           env:
             - name: OBKC_LOG_LEVEL
               value: '9'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: obk-controller-svc
+  namespace: default
+spec:
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: obk-controller
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -53,4 +68,3 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: obk-controller-cr
-

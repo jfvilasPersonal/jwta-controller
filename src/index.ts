@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
-import { KubeConfig, NetworkingV1Api, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
+import { NetworkingV1Api, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
 import { VERSION } from './version';
 
 // Configures connection to the Kubernetes cluster
@@ -14,15 +14,15 @@ const appsApi = kc.makeApiClient(AppsV1Api);
 const crdApi = kc.makeApiClient(CustomObjectsApi);
 
 
-async function checkIngress (n:any,ns:any,c:any) {
-  // Check that ingress do exist
+async function checkIngress (name:any,namespace:any,ingressClassName:any) {
+  //+++ Check that ingress do exist with specified CLASS NAME
   try {
-    var ing = await networkingApi.readNamespacedIngress(n, ns);
+    var ing = await networkingApi.readNamespacedIngress(name, namespace);
     log(1,ing);
   }
   catch (err: any) {
     if (err.statusCode===404)
-      log(0,"Error, inexistent ingress: "+n);
+      log(0,"Error, inexistent ingress: "+name);
     else {
       log(0,"Error checking ingress");
       log(0,err);
@@ -144,8 +144,10 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
               env: [
                 { name: 'OBKA_NAME', value: authorizatorName},
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
-                { name: 'OBKA_RULESET', value:JSON.stringify(spec.ruleset)},
+                { name: 'OBKA_RULESETS', value:JSON.stringify(spec.ruleset)},
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
+                { name: 'OBKA_CONSOLE', value:JSON.stringify(spec.config.console)},
+                { name: 'OBKA_API', value:JSON.stringify(spec.config.api)},
                 { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
                 { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config.logLevel)}
               ],
@@ -305,8 +307,10 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
               env: [ 
                 { name: 'OBKA_NAME', value: authorizatorName},
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
-                { name: 'OBKA_RULESET', value:JSON.stringify(spec.ruleset)},
+                { name: 'OBKA_RULESETS', value:JSON.stringify(spec.ruleset)},
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
+                { name: 'OBKA_CONSOLE', value:JSON.stringify(spec.config.console)},
+                { name: 'OBKA_API', value:JSON.stringify(spec.config.api)},
                 { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
                 { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config.logLevel)}
               ],

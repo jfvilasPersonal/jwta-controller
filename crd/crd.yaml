@@ -34,7 +34,7 @@ spec:
                     provider:
                       description: The provider of the ingress controller
                       type: string
-                      enum: [ 'ingress-nginx', 'nginx-ingress', 'haproxy', 'traefik']
+                      enum: [ 'ingress-nginx', 'nginx-ingress', 'haproxy', 'traefik' ]
                   required: [ name, provider ]
                 config:
                   description: 'General authorizator configuration regarding performance, monitoring and behaviour.'
@@ -45,9 +45,17 @@ spec:
                       type: number
                       default: 1
                     prometheus:
-                      description: true if you want the Oberkorn controller to provide prometheus metrics.
+                      description: true if you want the Oberkorn authorizator to provide prometheus metrics.
                       type: boolean
                       default: false
+                    console:
+                      description: true if you want the Oberkorn authorizator to provide an admin console.
+                      type: boolean
+                      default: true
+                    api:
+                      description: true if you want to enable API endpoint (needed by the admin console).
+                      type: boolean
+                      default: true
                     logLevel:
                       description: A number between 0 and 9 (0 is less log, 9 is very verbose).
                       type: number
@@ -193,48 +201,77 @@ spec:
                           responseHeader:
                             type: string
                         required: [ name, configMap ]
-
                 ruleset:
-                  description: A list of the rules you want to use to validate access to resources, that is, URIs and token conditions.
-                  type: array
+                  description: A set of rules applicable to a ur prefix
+                  type : array
                   items:
                     type: object
                     properties:
-                      uri:
-                        type: string
-                      uritype:
-                        type: string
-                        enum: [ prefix, exact, regex ]
-                      type:
-                        type: string
-                        enum: [ unrestricted, valid, claim, or, and ]
                       name:
+                        description: name of the ruleset
                         type: string
-                      validators:
+                      uriPrefix:
+                        description: uri Prefixes where this ruleset must be used
                         type: array
                         items:
                           type: string
-                      policy:
-                        type: string
-                        enum: [ present, notpresent, is, containsany, containsall, matchesany, matchesall ]
-                      options:
-                        type: array
-                        items:
-                          type: string
-                          enum: [ lowercase, uppercase ]
-                      subset:
+                      rules:
+                        description: List of the rules you want to use to validate access to resources i this ruleset.
                         type: array
                         items:
                           type: object
                           properties:
+                            uri:
+                              type: string
+                            uris:
+                              type: array
+                              items:
+                                type: string
+                            uritype:
+                              type: string
+                              enum: [ prefix, exact, regex ]
                             type:
                               type: string
-                              enum: [ unrestricted, valid, claim ]
+                              enum: [ unrestricted, valid, claim, or, and ]
                             name:
                               type: string
+                            validators:
+                              type: array
+                              items:
+                                type: string
                             policy:
                               type: string
                               enum: [ present, notpresent, is, containsany, containsall, matchesany, matchesall ]
+                            options:
+                              type: array
+                              items:
+                                type: string
+                                enum: [ lowercase, uppercase ]
+                            subset:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                    enum: [ unrestricted, valid, claim ]
+                                  name:
+                                    type: string
+                                  policy:
+                                    type: string
+                                    enum: [ present, notpresent, is, containsany, containsall, matchesany, matchesall ]
+                                  values:
+                                    type: array
+                                    items:
+                                      type: string
+                                  ontrue:
+                                    type: string
+                                    enum: [ accept, reject, continue ]
+                                    default: accept
+                                  onfalse:
+                                    type: string
+                                    enum: [ accept, reject, continue ]
+                                    default: continue
                             values:
                               type: array
                               items:
@@ -247,20 +284,7 @@ spec:
                               type: string
                               enum: [ accept, reject, continue ]
                               default: continue
-                      values:
-                        type: array
-                        items:
-                          type: string
-                      ontrue:
-                        type: string
-                        enum: [ accept, reject, continue ]
-                        default: accept
-                      onfalse:
-                        type: string
-                        enum: [ accept, reject, continue ]
-                        default: continue
-                    required: [ uri, uritype, type ]
-                      
+                    required: [ name ]
   # either Namespaced or Cluster
   scope: Namespaced
   names:
