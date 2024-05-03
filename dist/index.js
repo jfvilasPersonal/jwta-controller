@@ -22,7 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const body_parser_1 = __importDefault(require("body-parser"));
 const k8s = __importStar(require("@kubernetes/client-node"));
 const client_node_1 = require("@kubernetes/client-node");
 const version_1 = require("./version");
@@ -30,6 +35,7 @@ const version_1 = require("./version");
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 var logLevel = 0;
+var enableConsole = false;
 // Create the kubernetes clients
 const networkingApi = kc.makeApiClient(client_node_1.NetworkingV1Api);
 const coreApi = kc.makeApiClient(client_node_1.CoreV1Api);
@@ -264,8 +270,13 @@ async function deleteObkAuthorizator(authorizatorName, authorizatorNamespace, sp
         log(1, 'Ingress updated');
     }
     catch (err) {
-        log(0, 'Error removing ObkAuthorizator');
-        log(0, err);
+        if (err.statusCode === 404) {
+            log(0, `WARNING, ObkAuthorizator ${authorizatorName} doesn't exist.`);
+        }
+        else {
+            log(0, 'Error removing ObkAuthorizator');
+            log(0, err);
+        }
     }
 }
 async function processDelete(authorizatorObject) {
@@ -362,8 +373,29 @@ async function testAccess() {
         log(0, err);
     }
 }
+async function listen() {
+    if (true) {
+        log(0, 'Configuring Console endpoint');
+        const app = (0, express_1.default)();
+        app.listen(3000, () => {
+            log(0, `Oberkorn Authorizator listening at port ${3000}`);
+        });
+        app.use(body_parser_1.default.json());
+        app.use('/obk-console', express_1.default.static('./dist/console'));
+        app.use('/obk-console/authorizators', async (req, res) => {
+            var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
+            var auths = [];
+            for (auth of auth.body.items) {
+                auths.push({ name: auth.metadata.name, namespace: auth.metadata.namespace });
+            }
+            res.status(200).end(JSON.stringify(auths));
+        });
+    }
+}
 async function main() {
     try {
+        listen();
+        // launch express
         log(0, "Oberkorn Controller is watching events...");
         const watch = new k8s.Watch(kc);
         watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {}, async (type, obj) => {
@@ -430,6 +462,8 @@ console.log('Oberkorn Controller is starting...');
 console.log(`Oberkorn Controller version is ${version_1.VERSION}`);
 if (process.env.OBKC_LOG_LEVEL !== undefined)
     logLevel = +process.env.OBKC_LOG_LEVEL;
+if (process.env.OBKC_CONSOLE === 'true')
+    enableConsole = true;
 console.log('Log level: ' + logLevel);
 // filter log messages
 redirLog();

@@ -25,6 +25,8 @@ spec:
           env:
             - name: OBKC_LOG_LEVEL
               value: '9'
+            - name: OBKC_CONSOLE
+              value: 'true'
 ---
 apiVersion: v1
 kind: Service
@@ -38,6 +40,102 @@ spec:
       targetPort: 3000
   selector:
     app: obk-controller
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-obk-controller
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: localhost
+    http:
+      paths:
+        - path: /obk-authorizator/obk-console-authorizator
+          pathType: Prefix
+          backend:
+            service:
+              name: obk-authorizator-obk-console-authorizator-svc
+              port:
+                number: 3000
+        - path: /obk-console
+          pathType: Prefix
+          backend:
+            service:
+              name: obk-controller-svc
+              port:
+                number: 3000
+---
+apiVersion: jfvilas.at.outlook.com/v1
+kind: ObkAuthorizator
+metadata:
+  name: obk-console-authorizator
+  namespace: default
+spec:
+  config:
+    replicas: 1
+    prometheus: false
+    console: true
+    api: true
+    logLevel: 9
+  ingress:
+    name: ingress-obk-controller
+    provider: ingress-nginx
+    class: nginx
+  validators:
+    - basicAuth:
+        name: obkconsole
+        realm: ObkControllerConsole
+        storeType: inline
+        users: 
+          - name: admin
+            password: admin
+  ruleset:
+    - name: general
+      uriPrefix: [ '/obk-authorizator' ]
+      rules:
+        - uris: [ '' ]
+          uritype: prefix
+          type: unrestricted
+    - name: obkconsole-unprotected
+      uriPrefix: [ '/obk-console' ]
+      rules: 
+        - uris: [ '' ]
+          uritype: prefix
+          type: unrestricted
+---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: users
+#   namespace: dev
+# data:
+#   db: 'e30='
+# ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: obk-authorizator-role
+  namespace: dev
+rules:
+  # "" indicates the core API group
+  - apiGroups: [ '' ]
+    resources: [ 'secrets' ]
+    verbs: [ 'get', 'add', 'update' ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: obk-authorizator-rolebinding
+  namespace: dev
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace : dev
+roleRef:
+  kind: Role
+  name: obk-authorizator-role
 ---
 apiVersion: v1
 kind: ServiceAccount
