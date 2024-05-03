@@ -201,8 +201,8 @@ spec:
                           responseHeader:
                             type: string
                         required: [ name, configMap ]
-                ruleset:
-                  description: A set of rules applicable to a ur prefix
+                rulesets:
+                  description: An array containing sets of rules. Typically a ruleset is created for protecting one application.
                   type : array
                   items:
                     type: object

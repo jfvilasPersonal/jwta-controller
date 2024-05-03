@@ -91,7 +91,7 @@ spec:
         users: 
           - name: admin
             password: admin
-  ruleset:
+  rulesets:
     - name: general
       uriPrefix: [ '/obk-authorizator' ]
       rules:
