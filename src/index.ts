@@ -148,7 +148,6 @@ async function createObkAuthorizator (authorizatorName:string,authorizatorNamesp
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
                 { name: 'OBKA_RULESETS', value:JSON.stringify(spec.ruleset)},
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
-                { name: 'OBKA_CONSOLE', value:JSON.stringify(spec.config.console)},
                 { name: 'OBKA_API', value:JSON.stringify(spec.config.api)},
                 { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
                 { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config.logLevel)}
@@ -316,7 +315,6 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace},
                 { name: 'OBKA_RULESETS', value:JSON.stringify(spec.ruleset)},
                 { name: 'OBKA_VALIDATORS', value:JSON.stringify(spec.validators)},
-                { name: 'OBKA_CONSOLE', value:JSON.stringify(spec.config.console)},
                 { name: 'OBKA_API', value:JSON.stringify(spec.config.api)},
                 { name: 'OBKA_PROMETHEUS', value:JSON.stringify(spec.config.prometheus)},
                 { name: 'OBKA_LOG_LEVEL', value:JSON.stringify(spec.config.logLevel)}
@@ -383,16 +381,20 @@ async function testAccess(){
 }
 
 async function listen() {
-  if (true) {
-    log(0,'Configuring Console endpoint');
+  if (enableConsole) {
+    log(0,'Configuring Web Console endpoint');
+
     const app = express();
-  
     app.listen(3000, () => {
-      log(0,`Oberkorn Authorizator listening at port ${3000}`);
+      log(0,`Oberkorn Controller Web Console listening at port ${3000}`);
     });
   
     app.use(bodyParser.json());
+    
+    // serve SPA as a static endpoint
     app.use('/obk-console', express.static('./dist/console'))
+
+    // serve cluster authorizators list
     app.use('/obk-console/authorizators', async (req,res) => {
       var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
       var auths=[];
@@ -406,8 +408,9 @@ async function listen() {
 
 async function main() {
   try {
+    // launch express to serve web console
     listen();
-    // launch express
+
     log(0,"Oberkorn Controller is watching events...");
     const watch = new k8s.Watch(kc);  
     watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {},
