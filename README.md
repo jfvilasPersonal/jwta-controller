@@ -4,7 +4,7 @@ This repo contains all source artifacts needed to create the Oberkorn controller
 
 ## Oberkorn Authorizator project
 Oberkorn Authorizator is a module created for having the flexibility to deploy token validation (JWT or whatever token type) in front of any application project deployed
-inside a Kubernetes cluster where the access is managed via an Ingress Controller.
+inside a Kubernetes cluster where the access is managed via Ingress.
 
 The Oberkorn authorizator project is made up of several components:
   - *Custom Resource Definitions*. The way a Oberkorn authorizator can be deployed is based on kubernetes CRD's. You can see examples in the Oberkorn Authorizator repositories explaning how to build and deploy an authorizator using such CRD's.
