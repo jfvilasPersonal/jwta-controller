@@ -37,8 +37,8 @@ kc.loadFromDefault();
 var logLevel = 0;
 var enableConsole = false;
 // Create the kubernetes clients
-const networkingApi = kc.makeApiClient(client_node_1.NetworkingV1Api);
 const coreApi = kc.makeApiClient(client_node_1.CoreV1Api);
+const networkingApi = kc.makeApiClient(client_node_1.NetworkingV1Api);
 const appsApi = kc.makeApiClient(client_node_1.AppsV1Api);
 const crdApi = kc.makeApiClient(client_node_1.CustomObjectsApi);
 const rbacApi = kc.makeApiClient(client_node_1.RbacAuthorizationV1Api);
@@ -131,7 +131,6 @@ async function createTraefikMiddleware(authorizatorName, authorizatorNamespace, 
     await crdApi.createNamespacedCustomObject('traefik.io', 'v1alpha1', authorizatorNamespace, 'middlewares', resource);
 }
 async function annotateIngress(authorizatorName, authorizatorNamespace, clusterName, spec) {
-    // +++ we need to decide how to manage shared authorizators
     /* NGINX Ingress
     nginx.org/location-snippets: |
       auth_request /auth;
@@ -453,7 +452,11 @@ async function listen() {
             var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
             var auths = [];
             for (auth of auth.body.items) {
-                auths.push({ name: auth.metadata.name, namespace: auth.metadata.namespace });
+                var authorizator = auth;
+                console.log(authorizator);
+                if (authorizator.spec.config.api) {
+                    auths.push({ name: authorizator.metadata.name, namespace: authorizator.metadata.namespace });
+                }
             }
             res.status(200).end(JSON.stringify(auths));
         });

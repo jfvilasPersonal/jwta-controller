@@ -48,7 +48,6 @@ spec:
   config:
     replicas: 1
     prometheus: false
-    console: true
     api: true
     logLevel: 9
   ingress:

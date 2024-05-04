@@ -1,6 +1,6 @@
 kubectl delete -f crd\crd.yaml
 kubectl delete -f controller-deployment.yaml
-@REM kubectl delete -f controller-webconsole.yaml
+kubectl delete -f controller-webconsole.yaml
 
 cd ..\obk-console
 call npm run build
@@ -19,5 +19,5 @@ timeout 3
 kubectl apply -f crd\crd.yaml
 timeout 3
 kubectl apply -f controller-deployment.yaml
-@REM timeout 3
-@REM kubectl apply -f controller-webconsole.yaml
+timeout 3
+kubectl apply -f controller-webconsole.yaml

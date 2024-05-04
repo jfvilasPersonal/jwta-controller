@@ -116,8 +116,6 @@ async function createTraefikMiddleware(authorizatorName:string,authorizatorNames
 
 
 async function annotateIngress(authorizatorName:string,authorizatorNamespace:string,clusterName:string, spec:any) {
-    // +++ we need to decide how to manage shared authorizators
-
     /* NGINX Ingress
     nginx.org/location-snippets: |
       auth_request /auth;
@@ -479,7 +477,11 @@ async function listen() {
       var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
       var auths=[];
       for (auth of (auth.body as any).items) {
-        auths.push ( { name: (auth as any).metadata.name, namespace: (auth as any).metadata.namespace } );
+        var authorizator:any = auth;
+        console.log(authorizator);
+        if (authorizator.spec.config.api) {
+          auths.push ( { name: authorizator.metadata.name, namespace: authorizator.metadata.namespace } );
+        }
       }
       res.status(200).end(JSON.stringify(auths));
     });
