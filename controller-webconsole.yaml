@@ -22,7 +22,7 @@ spec:
   - host: localhost
     http:
       paths:
-        # enable access to the console SPA (the front), the authorizators list API and the authroizator proxy
+        # enable access to the console SPA (the front), the authorizators list API and the authorizator proxy
         - path: /obk-console
           pathType: Prefix
           backend:
