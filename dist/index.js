@@ -172,7 +172,7 @@ async function annotateIngress(authorizatorName, authorizatorNamespace, clusterN
     await networkingApi.replaceNamespacedIngress(spec.ingress.name, authorizatorNamespace, ingressObject);
     log(1, 'Ingress annotated');
 }
-async function createObkAuthorizator(authorizatorName, authorizatorNamespace, spec) {
+async function createObkAuthorizator(authorizatorName, authorizatorNamespace, clusterName, spec) {
     //create deployment
     log(1, 'Creating Deployment');
     var deploymentName = 'obk-authorizator-' + authorizatorName + '-deply';
@@ -251,7 +251,7 @@ async function createObkAuthorizator(authorizatorName, authorizatorNamespace, sp
         };
         await coreApi.createNamespacedService(authorizatorNamespace, serviceBody);
         log(1, 'Service created succesfully');
-        await annotateIngress(authorizatorName, authorizatorNamespace, 'cluster.local', spec);
+        await annotateIngress(authorizatorName, authorizatorNamespace, clusterName, spec);
         // create service account
         log(1, 'Creating SA');
         await createServiceAccount(authorizatorName, authorizatorNamespace);
@@ -270,7 +270,7 @@ async function createObkAuthorizator(authorizatorName, authorizatorNamespace, sp
         log(0, err);
     }
 }
-async function processAdd(authorizatorObject) {
+async function processAdd(authorizatorObject, clusterName) {
     var namespace = authorizatorObject.metadata.namespace;
     if (namespace === undefined)
         namespace = 'default';
@@ -279,7 +279,7 @@ async function processAdd(authorizatorObject) {
         log(0, "Ingress validation failed");
         return false;
     }
-    createObkAuthorizator(authorizatorObject.metadata.name, namespace, authorizatorObject.spec);
+    createObkAuthorizator(authorizatorObject.metadata.name, namespace, clusterName, authorizatorObject.spec);
     return true;
 }
 async function deleteObkAuthorizator(authorizatorName, authorizatorNamespace, spec) {
@@ -436,7 +436,7 @@ async function testAccess() {
         log(0, err);
     }
 }
-async function listen() {
+async function listen(clusterName) {
     if (enableConsole) {
         log(0, 'Configuring Web Console endpoint');
         const app = (0, express_1.default)();
@@ -458,14 +458,49 @@ async function listen() {
                     auths.push({ name: authorizator.metadata.name, namespace: authorizator.metadata.namespace });
                 }
             }
-            res.status(200).end(JSON.stringify(auths));
+            res.status(200).json(auths);
+        });
+        // serve authorizatros proxy
+        app.use('/obk-console/proxy', async (req, res) => {
+            // reroute the request to the authorizator
+            // received
+            // http://localhost/obk-console/proxy/dev/obk-authorizator/obk-console-authorizator/api/config
+            // reroute
+            // http://localhost/obk-authorizator/dev/obk-console-authorizator/api/config
+            var path = req.originalUrl;
+            console.log('url:' + path);
+            var i = path.indexOf('/proxy/');
+            var path = path.substring(i + 7);
+            console.log('local:' + path);
+            i = path.indexOf('/');
+            var authorizatorNamespace = path.substring(0, i);
+            path = path.substring(i + 1);
+            i = path.indexOf('/');
+            var authorizatorName = path.substring(0, i);
+            path = path.substring(i);
+            var pathPrefix = `/obk-authorizator/${authorizatorNamespace}/${authorizatorName}`;
+            var address = `http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3882` + pathPrefix + path;
+            console.log(authorizatorNamespace);
+            console.log(authorizatorName);
+            console.log(path);
+            console.log(address);
+            fetch(address).then(async (response) => {
+                console.log('response');
+                var json = await response.json();
+                console.log(json);
+                res.status(200).json(json);
+            })
+                .catch(err => {
+                console.log(err);
+                res.status(500).json(err);
+            });
         });
     }
 }
-async function main() {
+async function main(clusterName) {
     try {
         // launch express to serve web console
-        listen();
+        listen(clusterName);
         log(0, "Oberkorn Controller is watching events...");
         const watch = new k8s.Watch(kc);
         watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {}, async (type, obj) => {
@@ -474,7 +509,7 @@ async function main() {
             log(1, obj);
             switch (type) {
                 case "ADDED":
-                    await processAdd(obj);
+                    await processAdd(obj, clusterName);
                     break;
                 case "DELETED":
                     await processDelete(obj);
@@ -542,5 +577,5 @@ if (!testAccess()) {
 }
 else {
     // launch controller
-    main();
+    main('cluster.local');
 }

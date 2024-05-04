@@ -22,7 +22,7 @@ spec:
   - host: localhost
     http:
       paths:
-        # enable access to the console SPA (the front)
+        # enable access to the console SPA (the front), the authorizators list API and the authroizator proxy
         - path: /obk-console
           pathType: Prefix
           backend:
@@ -30,14 +30,14 @@ spec:
               name: obk-controller-svc
               port:
                 number: 3882
-        # enable access to the console authorizator API
-        - path: /obk-authorizator/obk-console-authorizator
-          pathType: Prefix
-          backend:
-            service:
-              name: obk-authorizator-obk-console-authorizator-svc
-              port:
-                number: 3882
+        # # enable access to the console authorizator API
+        # - path: /obk-authorizator/default/obk-console-authorizator
+        #   pathType: Prefix
+        #   backend:
+        #     service:
+        #       name: obk-authorizator-obk-console-authorizator-svc
+        #       port:
+        #         number: 3882
 ---
 apiVersion: jfvilas.at.outlook.com/v1
 kind: ObkAuthorizator
