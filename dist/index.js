@@ -41,6 +41,47 @@ const networkingApi = kc.makeApiClient(client_node_1.NetworkingV1Api);
 const coreApi = kc.makeApiClient(client_node_1.CoreV1Api);
 const appsApi = kc.makeApiClient(client_node_1.AppsV1Api);
 const crdApi = kc.makeApiClient(client_node_1.CustomObjectsApi);
+const rbacApi = kc.makeApiClient(client_node_1.RbacAuthorizationV1Api);
+async function createRole(authorizatorName, namespace) {
+    var role = {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'Role',
+        metadata: {
+            name: `obk-authorizator-${authorizatorName}-role`
+        },
+        rules: [
+            { apiGroups: [''], resources: ['secrets'], verbs: ['get', 'add', 'update'] }
+        ]
+    };
+    await rbacApi.createNamespacedRole(namespace, role);
+}
+async function createRoleBinding(authorizatorName, namespace) {
+    var roleBinding = {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'RoleBinding',
+        metadata: {
+            name: `obk-authorizator-${authorizatorName}-rolebinding`
+        },
+        subjects: [
+            { kind: 'ServiceAccount', name: `obk-authorizator-${authorizatorName}-sa`, namespace: namespace }
+        ],
+        roleRef: {
+            kind: 'Role',
+            name: `obk-authorizator-${authorizatorName}-role`
+        }
+    };
+    await rbacApi.createNamespacedRoleBinding(namespace, roleBinding);
+}
+async function createServiceAccount(authorizatorName, namespace) {
+    const serviceAccount = {
+        apiVersion: 'v1',
+        kind: 'ServiceAccount',
+        metadata: {
+            name: `obk-authorizator-${authorizatorName}-sa`
+        }
+    };
+    await coreApi.createNamespacedServiceAccount(namespace, serviceAccount);
+}
 async function checkIngress(name, namespace, ingressClassName) {
     //+++ Check that ingress do exist with specified CLASS NAME
     try {
@@ -71,7 +112,7 @@ async function createTraefikMiddleware(authorizatorName, authorizatorNamespace, 
       forwardAuth:
         address: http://.....
     */
-    var address = `http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3000/validate/${authorizatorName}`;
+    var address = `http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3882/validate/${authorizatorName}`;
     var resource = {
         apiVersion: 'traefik.io/v1alpha1',
         kind: 'Middleware',
@@ -107,14 +148,14 @@ async function annotateIngress(authorizatorName, authorizatorNamespace, clusterN
     var ingressObject = response2.body;
     switch (spec.ingress.provider) {
         case 'ingress-nginx':
-            ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3000/validate/${authorizatorName}`;
+            ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-url'] = `http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3882/validate/${authorizatorName}`;
             ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-method'] = 'GET';
             ingressObject.metadata.annotations['nginx.ingress.kubernetes.io/auth-response-headers'] = 'WWW-Authenticate';
             break;
         case 'nginx-ingress':
             //var headersSnippet = 'sssss';
             var locationSnippet = 'auth_request /obk-auth;';
-            var serverSnippet = `location = /obk-auth { proxy_pass http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3000/validate/${authorizatorName}; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header X-Original-URI $request_uri; }`;
+            var serverSnippet = `location = /obk-auth { proxy_pass http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3882/validate/${authorizatorName}; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header X-Original-URI $request_uri; }`;
             ingressObject.metadata.annotations['nginx.org/location-snippets'] = locationSnippet;
             ingressObject.metadata.annotations['nginx.org/server-snippets'] = serverSnippet;
             break;
@@ -152,22 +193,22 @@ async function createObkAuthorizator(authorizatorName, authorizatorNamespace, sp
                     }
                 },
                 spec: {
+                    serviceAccountName: `obk-authorizator-${authorizatorName}-sa`,
                     containers: [
                         {
                             name: appName,
                             image: 'obk-authorizator',
-                            ports: [{ containerPort: 3000, protocol: 'TCP' }],
+                            ports: [{ containerPort: 3882, protocol: 'TCP' }],
                             env: [
                                 { name: 'OBKA_NAME', value: authorizatorName },
                                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace },
-                                { name: 'OBKA_RULESETS', value: JSON.stringify(spec.ruleset) },
+                                { name: 'OBKA_RULESETS', value: JSON.stringify(spec.rulesets) },
                                 { name: 'OBKA_VALIDATORS', value: JSON.stringify(spec.validators) },
-                                { name: 'OBKA_CONSOLE', value: JSON.stringify(spec.config.console) },
                                 { name: 'OBKA_API', value: JSON.stringify(spec.config.api) },
                                 { name: 'OBKA_PROMETHEUS', value: JSON.stringify(spec.config.prometheus) },
                                 { name: 'OBKA_LOG_LEVEL', value: JSON.stringify(spec.config.logLevel) }
                             ],
-                            imagePullPolicy: 'Never' //+++ this is a specific requirementof K3D
+                            imagePullPolicy: 'Never' //+++ this is a specific requirement of K3D
                         },
                     ]
                 },
@@ -193,7 +234,7 @@ async function createObkAuthorizator(authorizatorName, authorizatorNamespace, sp
         // Create the Deployment in the cluster
         await appsApi.createNamespacedDeployment(authorizatorNamespace, deployment);
         log(1, 'Deployment successfully created');
-        // Cretae a Service
+        // Create a Service
         log(1, 'Creting service service');
         var serviceName = 'obk-authorizator-' + authorizatorName + '-svc';
         var serviceBody = new k8s.V1Service();
@@ -204,7 +245,7 @@ async function createObkAuthorizator(authorizatorName, authorizatorNamespace, sp
                 namespace: authorizatorNamespace
             },
             spec: {
-                ports: [{ protocol: 'TCP', port: 3000, targetPort: 3000 }],
+                ports: [{ protocol: 'TCP', port: 3882, targetPort: 3882 }],
                 selector: { app: appName },
                 type: 'ClusterIP'
             }
@@ -212,6 +253,18 @@ async function createObkAuthorizator(authorizatorName, authorizatorNamespace, sp
         await coreApi.createNamespacedService(authorizatorNamespace, serviceBody);
         log(1, 'Service created succesfully');
         await annotateIngress(authorizatorName, authorizatorNamespace, 'cluster.local', spec);
+        // create service account
+        log(1, 'Creating SA');
+        await createServiceAccount(authorizatorName, authorizatorNamespace);
+        log(1, 'SA created succesfully');
+        // create role
+        log(1, 'Creating Role');
+        await createRole(authorizatorName, authorizatorNamespace);
+        log(1, 'Role created succesfully');
+        // create role binding
+        log(1, 'Creating RoleBinding');
+        await createRoleBinding(authorizatorName, authorizatorNamespace);
+        log(1, 'RoleBinding created succesfully');
     }
     catch (err) {
         log(0, 'Error  creating the ObkAuthorizator');
@@ -268,6 +321,18 @@ async function deleteObkAuthorizator(authorizatorName, authorizatorNamespace, sp
         }
         await networkingApi.replaceNamespacedIngress(ingressName, authorizatorNamespace, ingressObject);
         log(1, 'Ingress updated');
+        //delete service account
+        log(1, `Removing SA`);
+        const respSA = await coreApi.deleteNamespacedServiceAccount(`obk-authorizator-${authorizatorName}-sa`, authorizatorNamespace);
+        log(1, `SA successfully removed`);
+        //delete role
+        log(1, `Removing Role`);
+        const respRole = await rbacApi.deleteNamespacedRole(`obk-authorizator-${authorizatorName}-role`, authorizatorNamespace);
+        log(1, `Role successfully removed`);
+        //delete rolebinsing
+        log(1, `Removing RoleBinding`);
+        const respRoleBinding = await rbacApi.deleteNamespacedRoleBinding(`obk-authorizator-${authorizatorName}-rolebinding`, authorizatorNamespace);
+        log(1, `RoleBinding successfully removed`);
     }
     catch (err) {
         if (err.statusCode === 404) {
@@ -309,13 +374,12 @@ async function modifyObkAuthorizator(authorizatorName, authorizatorNamespace, sp
                         {
                             name: appName,
                             image: 'obk-authorizator',
-                            ports: [{ containerPort: 3000, protocol: 'TCP' }],
+                            ports: [{ containerPort: 3882, protocol: 'TCP' }],
                             env: [
                                 { name: 'OBKA_NAME', value: authorizatorName },
                                 { name: 'OBKA_NAMESPACE', value: authorizatorNamespace },
-                                { name: 'OBKA_RULESETS', value: JSON.stringify(spec.ruleset) },
+                                { name: 'OBKA_RULESETS', value: JSON.stringify(spec.rulesets) },
                                 { name: 'OBKA_VALIDATORS', value: JSON.stringify(spec.validators) },
-                                { name: 'OBKA_CONSOLE', value: JSON.stringify(spec.config.console) },
                                 { name: 'OBKA_API', value: JSON.stringify(spec.config.api) },
                                 { name: 'OBKA_PROMETHEUS', value: JSON.stringify(spec.config.prometheus) },
                                 { name: 'OBKA_LOG_LEVEL', value: JSON.stringify(spec.config.logLevel) }
@@ -374,14 +438,17 @@ async function testAccess() {
     }
 }
 async function listen() {
-    if (true) {
-        log(0, 'Configuring Console endpoint');
+    if (enableConsole) {
+        log(0, 'Configuring Web Console endpoint');
         const app = (0, express_1.default)();
-        app.listen(3000, () => {
-            log(0, `Oberkorn Authorizator listening at port ${3000}`);
+        const port = 3882;
+        app.listen(port, () => {
+            log(0, `Oberkorn Controller Web Console listening at port ${port}`);
         });
         app.use(body_parser_1.default.json());
+        // serve SPA as a static endpoint
         app.use('/obk-console', express_1.default.static('./dist/console'));
+        // serve cluster authorizators list
         app.use('/obk-console/authorizators', async (req, res) => {
             var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
             var auths = [];
@@ -394,8 +461,8 @@ async function listen() {
 }
 async function main() {
     try {
+        // launch express to serve web console
         listen();
-        // launch express
         log(0, "Oberkorn Controller is watching events...");
         const watch = new k8s.Watch(kc);
         watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {}, async (type, obj) => {

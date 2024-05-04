@@ -1,0 +1,89 @@
+#
+# base deployment, a docker image ith teh controller
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obk-controller-deply
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: obk-controller
+  template:
+    metadata:
+      labels:
+        app: obk-controller
+    spec:
+      serviceAccount: obk-controller-sa
+      containers:
+        - name: obk-controller
+          image: obk-controller
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 3882
+          env:
+            - name: OBKC_LOG_LEVEL
+              value: '9'
+            - name: OBKC_CONSOLE
+              value: 'true'
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: obk-controller-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: obk-controller-cr
+  namespace: default
+rules:
+  # "" indicates the core API group
+  - apiGroups: ["", "jfvilas.at.outlook.com", "apps", "rbac.authorization.k8s.io", "networking.k8s.io","traefik.io"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: obk-controller-crb
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: obk-controller-sa
+  namespace : default
+roleRef:
+  kind: ClusterRole
+  name: obk-controller-cr
+---
+# +++ THIS MUST BE CREATED BY THE CONTROLLER
+# Role for enabling Oberkorn Authorizators to read secrets (for using Basic Auth validator of 'secret' type)
+# We add the new role to the 'default' service account (this is the one kubernetes uses when no other service account is specified)
+
+
+#
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: obk-authorizator-role
+#   namespace: dev
+# rules:
+#   - apiGroups: [ '' ]
+#     resources: [ 'secrets' ]
+#     verbs: [ 'get', 'add', 'update' ]
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: obk-authorizator-rolebinding
+#   namespace: dev
+# subjects:
+# - kind: ServiceAccount
+#   name: default
+#   namespace : dev
+# roleRef:
+#   kind: Role
+#   name: obk-authorizator-role
