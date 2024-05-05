@@ -536,7 +536,7 @@ async function main(clusterName:string) {
     watch.watch('/apis/jfvilas.at.outlook.com/v1/obkauthorizators', {},
       async (type, obj) => {
         log(0,"Received event: "+type);
-        log(0,`${obj.metadata.namespace}/${obj.metadata.name} (${obj.spec.ingress.class})`);
+        log(0,`${obj.metadata.namespace}/${obj.metadata.name} (class: ${obj.spec.ingress.class})`);
         log(1,obj);
         switch(type) {
           case "ADDED":
