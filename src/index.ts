@@ -186,7 +186,7 @@ async function createObkAuthorizator (authorizatorName:string, authorizatorNames
           serviceAccountName: `obk-authorizator-${authorizatorName}-sa`,
           containers: [
             {
-              name: appName,
+              name: 'obk-authorizator-'+authorizatorName+'-cont',
               image: 'obk-authorizator',
               ports: [ {containerPort:3882, protocol:'TCP'} ],
               env: [
@@ -366,7 +366,7 @@ async function modifyObkAuthorizator (authorizatorName:string,authorizatorNamesp
   var deploymentName = 'obk-authorizator-'+authorizatorName+'-deply';
 
   try {
-    var appName="obk-authorizator-"+authorizatorName+"-listener";
+    var appName='obk-authorizator-'+authorizatorName+'-listener';
 
     // Create the spec
     const deploymentSpec = {
@@ -457,6 +457,25 @@ async function testAccess(){
   }
 }
 
+async function postData(url = "", data = {}) {
+  // Default options are marked with *
+  console.log('tosend:'+JSON.stringify(data));
+  const response = await fetch(url, {
+    method: "POST", // *GET, POST, PUT, DELETE, etc.
+    mode: "cors", // no-cors, *cors, same-origin
+    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: "same-origin", // include, *same-origin, omit
+    headers: {
+      "Content-Type": "application/json",
+      // 'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    redirect: "follow", // manual, *follow, error
+    referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    body: JSON.stringify(data), // body data type must match "Content-Type" header
+  });
+  return response.json(); // parses JSON response into native JavaScript objects
+}
+
 async function listen(clusterName:string) {
   if (enableConsole) {
     log(0,'Configuring Web Console endpoint');
@@ -506,23 +525,46 @@ async function listen(clusterName:string) {
       path=path.substring(i);
       var pathPrefix=`/obk-authorizator/${authorizatorNamespace}/${authorizatorName}`
       var address=`http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3882`+pathPrefix+path;
-      console.log(authorizatorNamespace);
-      console.log(authorizatorName);
-      console.log(path);
-      console.log(address);
+      console.log('authns:'+authorizatorNamespace);
+      console.log('authnm:'+authorizatorName);
+      console.log('path:'+path);
+      console.log('address:'+address);
 
-      fetch(address).then( async response => {
-        console.log('response');
-        var json=await response.json();
-        console.log(json);
-        res.status(200).json(json);
-      })
-      .catch( err => {
-        console.log(err);
-        res.status(500).json(err);
-      });
+      switch(req.method) {
+        case 'GET':
+          fetch(address).then( async response => {
+            console.log('response');
+            //console.log(await response.text());
+            var json=await response.json();
+            console.log(json);
+            res.status(200).json(json);
+          })
+          .catch( err => {
+            console.log(err);
+            res.status(500).json(err);
+          });
+    
+          break;
+        case 'POST':
+          try {
+            postData(address,req.body).then ( (data) => {
+              console.log('received:'+data);
+              res.status(200).json(data);
+            })
+            .catch ((err) => {
+              console.log(err);
+              console.log('catchpost');
+              res.status(500).json({ ok:false, err:err });
+            });
+          }
+          catch (err) {
+            console.log(err);
+            console.log('catch');
+            res.status(500).json({ ok:false, err:err });
+          }
+          break;
+      }
     });
-
   }
 }
 
