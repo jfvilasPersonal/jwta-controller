@@ -436,6 +436,24 @@ async function testAccess() {
         log(0, err);
     }
 }
+// async function postData(url = "", data = {}) {
+//   // Default options are marked with *
+//   console.log('tosend:'+JSON.stringify(data));
+//   const response = await fetch(url, {
+//     method: "POST", // *GET, POST, PUT, DELETE, etc.
+//     mode: "cors", // no-cors, *cors, same-origin
+//     cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+//     credentials: "same-origin", // include, *same-origin, omit
+//     headers: {
+//       "Content-Type": "application/json"
+//     },
+//     redirect: "follow", // manual, *follow, error
+//     referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+//     body: JSON.stringify(data), // body data type must match "Content-Type" header
+//   });
+//   console.log('ct:'+response.headers.get('content-type'));
+//   return response.json(); // parses JSON response into native JavaScript objects
+// }
 async function postData(url = "", data = {}) {
     // Default options are marked with *
     console.log('tosend:' + JSON.stringify(data));
@@ -445,14 +463,21 @@ async function postData(url = "", data = {}) {
         cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
         credentials: "same-origin", // include, *same-origin, omit
         headers: {
-            "Content-Type": "application/json",
-            // 'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/json"
         },
         redirect: "follow", // manual, *follow, error
         referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         body: JSON.stringify(data), // body data type must match "Content-Type" header
     });
-    return response.json(); // parses JSON response into native JavaScript objects
+    var ct = response.headers.get('content-type');
+    if (ct === null || ct === void 0 ? void 0 : ct.startsWith('text/')) {
+        var r = await response.text();
+        return r;
+    }
+    else {
+        var r2 = JSON.stringify(await response.json()); // parses JSON response into native JavaScript objects
+        return r2;
+    }
 }
 async function listen(clusterName) {
     if (enableConsole) {
@@ -506,7 +531,6 @@ async function listen(clusterName) {
                 case 'GET':
                     fetch(address).then(async (response) => {
                         console.log('response');
-                        //console.log(await response.text());
                         var json = await response.json();
                         console.log(json);
                         res.status(200).json(json);
@@ -518,15 +542,10 @@ async function listen(clusterName) {
                     break;
                 case 'POST':
                     try {
-                        postData(address, req.body).then((data) => {
-                            console.log('received:' + data);
-                            res.status(200).json(data);
-                        })
-                            .catch((err) => {
-                            console.log(err);
-                            console.log('catchpost');
-                            res.status(500).json({ ok: false, err: err });
-                        });
+                        var a = await postData(address, req.body);
+                        console.log('a:' + a);
+                        var data = JSON.parse(a);
+                        res.status(200).json(data);
                     }
                     catch (err) {
                         console.log(err);
@@ -534,6 +553,23 @@ async function listen(clusterName) {
                         res.status(500).json({ ok: false, err: err });
                     }
                     break;
+                // try {
+                //   postData(address,req.body).then ( (data) => {
+                //     console.log('received:'+data);
+                //     res.status(200).json(data);
+                //   })
+                //   .catch ((err) => {
+                //     console.log(err);
+                //     console.log('catchpost');
+                //     res.status(500).json({ ok:false, err:err });
+                //   });
+                // }
+                // catch (err) {
+                //   console.log(err);
+                //   console.log('catch');
+                //   res.status(500).json({ ok:false, err:err });
+                // }
+                // break;
             }
         });
     }
