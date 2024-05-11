@@ -28,6 +28,8 @@ spec:
               value: '9'
             - name: OBKC_CONSOLE
               value: 'true'
+            - name: OBKC_API
+              value: 'true'
 ---
 apiVersion: v1
 kind: ServiceAccount

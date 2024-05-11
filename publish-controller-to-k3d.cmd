@@ -1,3 +1,4 @@
+kubectl config use-context k3d-oberkorn
 kubectl delete -f crd\crd.yaml
 kubectl delete -f controller-deployment.yaml
 kubectl delete -f controller-webconsole.yaml

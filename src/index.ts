@@ -3,12 +3,14 @@ import bodyParser from 'body-parser';
 import * as k8s from '@kubernetes/client-node';
 import { NetworkingV1Api, CoreV1Api, AppsV1Api, CustomObjectsApi, RbacAuthorizationV1Api, V1ServiceAccount } from '@kubernetes/client-node';
 import { VERSION } from './version';
+import { ProxyApi } from './api/Proxy';
 
 // Configures connection to the Kubernetes cluster
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 var logLevel=0;
 var enableConsole=false;
+var enableApi=false;
 
 // Create the kubernetes clients
 const coreApi = kc.makeApiClient(CoreV1Api);
@@ -171,6 +173,7 @@ async function createObkAuthorizator (authorizatorName:string, authorizatorNames
 
     // Create the spec fo the deployment
     const deploymentSpec = {
+      metadata: { labels: { app: appName } },
       replicas: spec.config.replicas,
       selector: { matchLabels: { app: appName } },
       template: {
@@ -457,159 +460,123 @@ async function testAccess(){
   }
 }
 
-// async function postData(url = "", data = {}) {
-//   // Default options are marked with *
-//   console.log('tosend:'+JSON.stringify(data));
-//   const response = await fetch(url, {
-//     method: "POST", // *GET, POST, PUT, DELETE, etc.
-//     mode: "cors", // no-cors, *cors, same-origin
-//     cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-//     credentials: "same-origin", // include, *same-origin, omit
-//     headers: {
-//       "Content-Type": "application/json"
-//     },
-//     redirect: "follow", // manual, *follow, error
-//     referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-//     body: JSON.stringify(data), // body data type must match "Content-Type" header
-//   });
-//   console.log('ct:'+response.headers.get('content-type'));
-
-//   return response.json(); // parses JSON response into native JavaScript objects
-// }
-
-async function postData(url = "", data = {}) {
-  // Default options are marked with *
-  console.log('tosend:'+JSON.stringify(data));
-  const response = await fetch(url, {
-    method: "POST", // *GET, POST, PUT, DELETE, etc.
-    mode: "cors", // no-cors, *cors, same-origin
-    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: "same-origin", // include, *same-origin, omit
-    headers: {
-      "Content-Type": "application/json"
-    },
-    redirect: "follow", // manual, *follow, error
-    referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-    body: JSON.stringify(data), // body data type must match "Content-Type" header
-  });
-  var ct=response.headers.get('content-type');
-  if (ct?.startsWith('text/')) {
-    var r=await response.text();
-    return r;
-  }
-  else {
-    var r2= JSON.stringify(await response.json()); // parses JSON response into native JavaScript objects
-    return r2;
-  }
-}
 
 async function listen(clusterName:string) {
-  if (enableConsole) {
-    log(0,'Configuring Web Console endpoint');
 
-    const app = express();
+  if (enableConsole || enableApi) {
+    log(0,'Configuring HTTP endpoints');
+
+    const app=express();
     const port=3882;
     app.listen(port, () => {
-      log(0,`Oberkorn Controller Web Console listening at port ${port}`);
-    });
-  
+      log(0,`Oberkorn Controller HTTP endpoint listening at port ${port}`);
+    });  
     app.use(bodyParser.json());
-    
-    // serve SPA as a static endpoint
-    app.use('/obk-console', express.static('./dist/console'))
 
-    // serve cluster authorizators list
-    app.use('/obk-console/authorizators', async (req,res) => {
-      var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
-      var auths=[];
-      for (auth of (auth.body as any).items) {
-        var authorizator:any = auth;
-        console.log(authorizator);
-        if (authorizator.spec.config.api) {
-          auths.push ( { name: authorizator.metadata.name, namespace: authorizator.metadata.namespace } );
+
+    if (enableConsole) {
+      log(0,`Oberkorn Controller Web console served at http://your.external.name:${port}/obk-console`);
+      // serve SPA as a static endpoint
+      app.use('/obk-console', express.static('./dist/console'))
+
+      // serve cluster authorizators list (needed for console Welcome page)
+      app.use('/obk-console/authorizators', async (req,res) => {
+        var auth = await crdApi.listClusterCustomObject('jfvilas.at.outlook.com', 'v1', 'obkauthorizators');
+        var auths=[];
+        for (auth of (auth.body as any).items) {
+          var authorizator:any = auth;
+          console.log(authorizator);
+          if (authorizator.spec.config.api) auths.push ( { name: authorizator.metadata.name, namespace: authorizator.metadata.namespace } );
         }
-      }
-      res.status(200).json(auths);
-    });
+        res.status(200).json(auths);
+      });     
+    }
+
+    if (enableApi) {
+      log(0,`Oberkorn Controller proxy API enabled at http://your.external.name:${port}/obk-authorizator/proxy`);
+      var pa:ProxyApi = new ProxyApi(clusterName, coreApi);
+      app.use(`/obk-console/proxy`, pa.route);
+    }
+
+  }  
+
 
     // serve authorizatros proxy
-    app.use('/obk-console/proxy', async (req,res) => {
-      // reroute the request to the authorizator
-      // received
-      // http://localhost/obk-console/proxy/dev/obk-authorizator/obk-console-authorizator/api/config
-      // reroute
-      // http://localhost/obk-authorizator/dev/obk-console-authorizator/api/config
-      var path=req.originalUrl;
-      console.log('url:'+path);
-      var i = path.indexOf('/proxy/');
-      var path=path.substring(i+7);
-      console.log('local:'+path);
-      i=path.indexOf('/');
-      var authorizatorNamespace=path.substring(0,i);
-      path=path.substring(i+1);
-      i=path.indexOf('/');
-      var authorizatorName=path.substring(0,i);
-      path=path.substring(i);
-      var pathPrefix=`/obk-authorizator/${authorizatorNamespace}/${authorizatorName}`
-      var address=`http://obk-authorizator-${authorizatorName}-svc.${authorizatorNamespace}.svc.${clusterName}:3882`+pathPrefix+path;
-      console.log('authns:'+authorizatorNamespace);
-      console.log('authnm:'+authorizatorName);
-      console.log('path:'+path);
-      console.log('address:'+address);
+    // app.use('/obk-console/proxy', async (req,res) => {
+    //   // reroute the request to the authorizator
+    //   // received
+    //   // http://localhost/obk-console/proxy/dev/obk-authorizator/obk-console-authorizator/api/config
+    //   // reroute
+    //   // http://localhost/obk-authorizator/dev/obk-console-authorizator/api/config
+    //   var path=req.originalUrl;
+    //   console.log('url:'+path);
+    //   var i = path.indexOf('/proxy/');
+    //   var path=path.substring(i+7);
+    //   console.log('local:'+path);
+    //   i=path.indexOf('/');
+    //   var authorizatorNamespace=path.substring(0,i);
+    //   path=path.substring(i+1);
+    //   i=path.indexOf('/');
+    //   var authorizatorName=path.substring(0,i);
+    //   path=path.substring(i);
 
-      switch(req.method) {
-        case 'GET':
-          fetch(address).then( async response => {
-            console.log('response');
-            var json=await response.json();
-            console.log(json);
-            res.status(200).json(json);
-          })
-          .catch( err => {
-            console.log(err);
-            res.status(500).json(err);
-          });
-    
-          break;
-        case 'POST':
-          try {
-            var a = await postData(address,req.body);
-            console.log('a:'+a);
-            var data=JSON.parse(a);
-            res.status(200).json(data);
-          }
-          catch (err) {
-            console.log(err);
-            console.log('catch');
-            res.status(500).json({ ok:false, err:err });
-          }
-          break;
+    //   var serviceName=`obk-authorizator-${authorizatorName}-svc`;
+    //   var pathPrefix=`/obk-authorizator/${authorizatorNamespace}/${authorizatorName}`
+    //   var hostPort=`http://${serviceName}.${authorizatorNamespace}.svc.${clusterName}:3882`;
+    //   var localPath=pathPrefix+path;
+    //   console.log('authns:'+authorizatorNamespace);
+    //   console.log('authnm:'+authorizatorName);
+    //   console.log('authsvc:'+serviceName);
+    //   console.log('path:'+path);
+    //   console.log('address:'+hostPort+localPath);
 
-          // try {
-          //   postData(address,req.body).then ( (data) => {
-          //     console.log('received:'+data);
-          //     res.status(200).json(data);
-          //   })
-          //   .catch ((err) => {
-          //     console.log(err);
-          //     console.log('catchpost');
-          //     res.status(500).json({ ok:false, err:err });
-          //   });
-          // }
-          // catch (err) {
-          //   console.log(err);
-          //   console.log('catch');
-          //   res.status(500).json({ ok:false, err:err });
-          // }
-          // break;
-      }
-    });
-  }
+    //   switch(req.method) {
+    //     case 'GET':
+    //       fetch(hostPort+localPath).then( async response => {
+    //         console.log('response');
+    //         var json=await response.json();
+    //         console.log(json);
+    //         res.status(200).json(json);
+    //       })
+    //       .catch( err => {
+    //         console.log(err);
+    //         res.status(500).json(err);
+    //       });
+    //       break;
+
+    //     case 'POST':
+    //       try {
+    //         var a = await postData(hostPort+localPath,req.body);
+    //         console.log('a:'+a);
+    //         res.status(200).json(a);
+    //       }
+    //       catch (err) {
+    //         console.log(err);
+    //         console.log('catch');
+    //         res.status(500).json({ ok:false, err:err });
+    //       }
+    //       break;
+
+    //     case 'multiPOST':
+    //       try {
+    //         var a = await multiPostData(serviceName, authorizatorNamespace, localPath, req.body);
+    //         console.log('a:'+a);
+    //         res.status(200).json(a);
+    //       }
+    //       catch (err) {
+    //         console.log(err);
+    //         console.log('catch');
+    //         res.status(500).json({ ok:false, err:err });
+    //       }
+    //       break;
+
+    //   }
+    // });
 }
 
 async function main(clusterName:string) {
   try {
-    // launch express to serve web console
+    // launch express to serve web console and api (if requested)
     listen(clusterName);
 
     log(0,"Oberkorn Controller is watching events...");
@@ -688,6 +655,7 @@ console.log('Oberkorn Controller is starting...');
 console.log(`Oberkorn Controller version is ${VERSION}`);
 if (process.env.OBKC_LOG_LEVEL!==undefined) logLevel= +process.env.OBKC_LOG_LEVEL;
 if (process.env.OBKC_CONSOLE==='true') enableConsole = true;
+if (process.env.OBKC_API==='true') enableApi = true;
 console.log('Log level: '+logLevel);
 
 // filter log messages
