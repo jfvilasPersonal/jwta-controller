@@ -1,5 +1,6 @@
 import express from 'express';
 import * as k8s from '@kubernetes/client-node';
+import { reduce } from '../tools/Utils';
 
 export class ProxyApi {
     public route = express.Router();
@@ -144,54 +145,9 @@ export class ProxyApi {
         }
     }
       
-      
-    reduce (results:any[], merge:any={}) {
-        var result:any={};
 
-        for (var tkey of Object.keys(merge)) {
-            var action= merge[tkey];
-            var skey=Object.keys(action)[0];
-            var oper=action[skey];
-            console.log(`action: ${action}`);
-            console.log(`key: ${skey}`);
-            console.log(`oper: ${oper}`);
-            switch(oper) {
-                case 'sum':
-                    result[tkey]=results.map(item => item[skey]).reduce((prev, next) => prev + next);
-                    break;
-                case 'or':
-                    result[tkey]=results.map(item => item[skey]).reduce((prev, next) => prev || next);
-                    break;
-                case 'and':
-                    result[tkey]=results.map(item => item[skey]).reduce((prev, next) => prev && next);
-                    break;
-                case 'avg':
-                    result[tkey]=results.map(item => item[skey]).reduce((prev, next) => prev + next) / results.length;
-                    break;
-                case 'max':
-                    result[tkey]=results.reduce((max, obj) => (obj[skey] > max ? obj[skey] : max), results[0][skey]);
-                    break;
-                case 'min':
-                    result[tkey]=results.reduce((max, obj) => (obj[skey] < max ? obj[skey] : max), results[0][skey]);
-                    break;
-                case 'array':
-                    result[tkey]=[];
-                    results.map(item=> result[tkey].push(item[skey]));
-                    break;
-                case 'merge':
-                    result[tkey]=[];
-                    results.map( item => result[tkey]=result[tkey].concat(item[skey]));
-                    break;
-                        
-            }
-        }
-        return result;
-    }
-
-
-    async getData(url = "", data = {}) : Promise<{}> {
+    async getData(url = "") : Promise<{}> {
         // Default options are marked with *
-        console.log('toget:'+JSON.stringify(data));
         const response = await fetch(url);
         var ct=response.headers.get('content-type');
         if (ct?.startsWith('text/')) {
@@ -206,8 +162,9 @@ export class ProxyApi {
 
 
     async multiGetData(service='', namespace='', localPath = "", destination='svc', merge:any={}) : Promise<{}> {
-        var podIps = await this.getPodIPs(service, namespace);
         var results=[]
+        var podIps = await this.getPodIPs(service, namespace);
+        if (destination==='svc' && podIps.length>1) podIps=podIps.splice(1);
         for (var ip of podIps) {
           var url=`http://${ip}:3882${localPath}`;
           var resp = await this.getData(url);
@@ -217,7 +174,7 @@ export class ProxyApi {
         }
 
         if (Object.keys(merge).length===0) return results[0];
-        return this.reduce(results,merge);
+        return reduce(results,merge);
     }
 
 
@@ -249,8 +206,9 @@ export class ProxyApi {
 
           
     async multiPostData(service='', namespace='', localPath = "", data = {}, destination='svc', merge:any={}) {
-        var podIps = await this.getPodIPs(service, namespace);
         var results=[]
+        var podIps = await this.getPodIPs(service, namespace);
+        if (destination==='svc' && podIps.length>1) podIps=podIps.splice(1);
         for (var ip of podIps) {
           var url=`http://${ip}:3882${localPath}`;
           var resp = await this.postData(url, data);
@@ -260,7 +218,7 @@ export class ProxyApi {
         }
 
         if (Object.keys(merge).length===0) return results[0];
-        return this.reduce(results,merge);
+        return reduce(results,merge);
       }  
 
 
