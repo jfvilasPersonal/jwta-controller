@@ -42,12 +42,21 @@ export class ProxyApi {
             var destination='svc'; // 'all'
             var merge={};
             if (path==='/api/overview/status') {
+                // all validators in all pods
                 destination='all';
                 merge={ totalRequests:{totalRequests:'sum'}, totalMicros:{totalMicros:'sum'}};
             }
             else if (path==='/api/overview/config' || path==='/api/overview/validators' || path==='/api/overview/rulesets') {
                 destination='svc';
-                merge={ };
+                merge={};
+            }
+            else if (path.startsWith('/api/validator/') && path.endsWith('/stats')) {
+                destination='all';
+                merge={ totalRequests:{totalRequests:'sum'}, totalOkRequests:{totalOkRequests:'sum'}, totalMicros:{totalMicros:'sum'}};
+            }
+            else if (path==='/api/validator/*') {
+                destination='svc';
+                merge={};
             }
 
             try {

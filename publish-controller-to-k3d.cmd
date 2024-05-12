@@ -5,12 +5,27 @@ kubectl delete -f controller-webconsole.yaml
 
 cd ..\obk-console
 call npm run build
+if errorlevel 1 (
+    cd ..\obk-controller
+    echo ***************************************
+    echo *********** ERROR EN BUILD ************
+    echo ***************************************
+    exit /b %errorlevel%
+)
 cd ..\obk-controller
 mkdir dist\console
 xcopy /s /y ..\obk-console\build\*.* dist\console
 
 call update-version
 call npm run build
+if errorlevel 1 (
+    cd ..\obk-controller
+    echo ***************************************
+    echo *********** ERROR EN BUILD ************
+    echo ***************************************
+    exit /b %errorlevel%
+)
+
 docker image rm obk-controller:latest
 set DOCKER_BUILDKIT=1
 set COMPOSE_DOCKER_CLI_BUILD=0
