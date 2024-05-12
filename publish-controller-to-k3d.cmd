@@ -3,17 +3,21 @@ kubectl delete -f crd\crd.yaml
 kubectl delete -f controller-deployment.yaml
 kubectl delete -f controller-webconsole.yaml
 
+REM clean
 del dist\*.js /s /q
 del dist\console\*.* /s /q
+
+REM BUILD CONSOLE
 cd ..\obk-console
-call npm run build
+call build.cmd
 if errorlevel 1 (
     cd ..\obk-controller
-    echo ***************************************
-    echo *********** ERROR EN BUILD ************
-    echo ***************************************
+    echo ***********************************************
+    echo *********** ERROR EN CONSOLE BUILD ************
+    echo ***********************************************
     exit /b %errorlevel%
 )
+
 cd ..\obk-controller
 mkdir dist\console
 xcopy /s /y ..\obk-console\build\*.* dist\console

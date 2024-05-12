@@ -52,7 +52,7 @@ export class ProxyApi {
             }
             else if (path.startsWith('/api/validator/') && path.endsWith('/stats')) {
                 destination='all';
-                merge={ totalRequests:{totalRequests:'sum'}, totalOkRequests:{totalOkRequests:'sum'}, totalMicros:{totalMicros:'sum'}};
+                merge={ name:{name:'copy'}, totalRequests:{totalRequests:'sum'}, totalOkRequests:{totalOkRequests:'sum'}, totalMicros:{totalMicros:'sum'}};
             }
             else if (path==='/api/validator/*') {
                 destination='svc';
@@ -61,7 +61,7 @@ export class ProxyApi {
 
             try {
                 var resp=await this.multiGetData(serviceName, authorizatorNamespace, localPath, destination, merge);
-                console.log('response');
+                console.log('response to send');
                 console.log(resp);
                 res.status(200).json(resp);
             }
@@ -110,7 +110,8 @@ export class ProxyApi {
                 }
 
                 var a = await this.multiPostData(serviceName, authorizatorNamespace, localPath, req.body, destination, merge);
-                console.log('a:'+a);
+                console.log('response to send');
+                console.log(a);
                 res.status(200).json(a);
             }
             catch (err) {

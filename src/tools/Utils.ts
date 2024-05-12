@@ -22,6 +22,9 @@ export const reduce =  (results:any[], merge:any={}) => {
         var skey=Object.keys(action)[0];
         var oper=action[skey];
         switch(oper) {
+            case 'copy':
+                result[tkey]=getValue(results[0],skey);
+                break;
             case 'sum':
                 result[tkey]=results.map(item => getValue(item,skey)).reduce((prev, next) => prev + next);
                 break;
