@@ -3,6 +3,8 @@ kubectl delete -f crd\crd.yaml
 kubectl delete -f controller-deployment.yaml
 kubectl delete -f controller-webconsole.yaml
 
+del dist\*.js /s /q
+del dist\console\*.* /s /q
 cd ..\obk-console
 call npm run build
 if errorlevel 1 (
