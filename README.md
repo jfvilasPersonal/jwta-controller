@@ -30,7 +30,7 @@ When a deployed authorizator needs to be changed, you can just 'kubectl apply' t
 
   - Validate the request.
   - Apply changes to the authorizator's config map. 
-  - Appli changes to the authorizator deployment.
+  - Apply changes to the authorizator deployment.
   - If an ingress controller has been specified, then the Oberkorn controller will reconfigure the ingress through annotations.
 
 ### Authorizator deletion
@@ -71,6 +71,8 @@ Follow these simple steps to have your Oberkorn controller deployed:
 
 ## Oberkorn architecture
 Oberkorn is build around two separate resources: **the controller** (in charge of the control plane) and **the authorizator** (repsonsible of the data plane). The architecture of the whole project is depicted below.
+
+Oberkorn provides a web console that is protected using an Oberkorn Authorizator.
 
 ![Oberkorn architecture](https://jfvilaspersonal.github.io/oberkorn/_media/architecture/oberkorn-architecture.png)
 
