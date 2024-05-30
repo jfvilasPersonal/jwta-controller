@@ -1,6 +1,6 @@
 # Welcome
 
-This repo contains all source artifacts needed to create the Oberkorn controller of the [Oberkorn Authorizator project](https://jfvilaspersonal.github.io/oberkorn).
+Here we share some info on how to create an Oberkorn controller of the [Oberkorn Authorizator project](https://jfvilaspersonal.github.io/oberkorn).
 
 ## Oberkorn Authorizator project
 Oberkorn Authorizator is a module created for having the flexibility to deploy token validation (JWT or whatever token type) in front of any application project deployed
