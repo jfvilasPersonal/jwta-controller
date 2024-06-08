@@ -56,8 +56,9 @@ The flow is as follows:
 Follow these simple steps to have your Oberkorn controller deployed:
 
   1. Create the CRD for the Oberkorn authorizator (this CRD is the one you need to be able to create authorizators).
-
-        `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/crd/crd.yaml`
+        ```bash
+        kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/installation/crd.yaml
+        ```
 
   2. Deploy the controller. the controller needs some permissions to be able to create resources:
        1. Needs access to the core API group, the networking API group and the Apps API group.
@@ -65,7 +66,9 @@ Follow these simple steps to have your Oberkorn controller deployed:
        3. Needs permissions to access any namespace inside the kubernetes cluster.
        So, you need to apply following YAML:
 
-       `kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/crd/controller.yml`
+      ```bash
+       kubectl apply -f https://raw.githubusercontent.com/jfvilasPersonal/obk-controller/main/installation/controller-deployment.yaml
+       ```
        
 **That's it!**
 
